@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
-const SCHEMA_VERSION = 2;
+// Bump version to invalidate old cached data and reload fresh CSV defaults
+const SCHEMA_VERSION = 3;
 
 export function useLocalStorage(key, initialValue) {
   const [storedValue, setStoredValue] = useState(() => {

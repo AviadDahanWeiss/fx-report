@@ -848,9 +848,9 @@ export default function FXApp() {
                 {label:'Annual Budget',value:kpiData.annualBudget,highlight:false},
                 {label:'YTD Budget',value:kpiData.ytdBudget,highlight:false},
                 {label:'YTD Actual',value:kpiData.ytdActual,highlight:false},
+                {label:'Annual Forecast',value:kpiData.annualForecast,highlight:false},
                 {label:'YTD Variance',value:kpiData.ytdVariance,highlight:true},
                 {label:'MTD Variance',value:kpiData.mtdVariance,highlight:true},
-                {label:'Annual Forecast',value:kpiData.annualForecast,highlight:false},
               ].map(({label,value,highlight})=>(
                 <div key={label} className={`p-3 rounded-xl border flex flex-col justify-center ${highlight?(darkMode?'border-emerald-500/30 bg-emerald-900/10':'border-emerald-500/30 bg-emerald-50'):theme.card}`}>
                   <div className={`font-mono text-xs mb-1 uppercase ${highlight?(darkMode?'text-emerald-400 font-bold':'text-emerald-600 font-bold'):'opacity-50'}`}>{label}</div>
@@ -861,11 +861,34 @@ export default function FXApp() {
               ))}
             </div>
 
-            {/* YTD SLIDER */}
-            <div className={`p-4 rounded-xl border ${theme.card} flex items-center gap-4`}>
-              <span className="font-mono text-[10px] font-bold opacity-70 flex-shrink-0">YTD PERIOD</span>
-              <input type="range" min="0" max="11" value={currentYTDMonth} onChange={e=>setCurrentYTDMonth(Number(e.target.value))} className="flex-grow h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-400"/>
-              <span className="font-mono text-xs font-bold w-10 text-right flex-shrink-0">{getMonthName(currentYTDMonth)}</span>
+            {/* YTD PERIOD — tick-timeline selector */}
+            <div className={`p-3 sm:p-4 rounded-xl border ${theme.card}`}>
+              <div className="flex justify-between items-center mb-3">
+                <span className="font-mono text-[10px] font-bold opacity-50 tracking-widest">YTD PERIOD</span>
+                <span className={`font-mono text-xs font-bold ${theme.accent}`}>{getMonthName(currentYTDMonth).toUpperCase()}</span>
+              </div>
+              <div className="flex gap-px">
+                {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m,i)=>(
+                  <button key={i} onClick={()=>setCurrentYTDMonth(i)} className="flex-1 flex flex-col items-center gap-1 py-1 rounded group" title={m}>
+                    {/* tick mark — taller + glowing on active month */}
+                    <div className={`w-0.5 rounded-full transition-all duration-150 ${
+                      i===currentYTDMonth
+                        ? `h-4 ${darkMode?'bg-emerald-400 shadow-[0_0_5px_2px_rgba(52,211,153,0.5)]':'bg-blue-500 shadow-[0_0_5px_2px_rgba(59,130,246,0.5)]'}`
+                        : i<currentYTDMonth
+                        ? `h-2.5 ${darkMode?'bg-emerald-500/50':'bg-blue-400/40'}`
+                        : `h-2 ${darkMode?'bg-white/15 group-hover:bg-white/35':'bg-black/10 group-hover:bg-black/25'}`
+                    }`}/>
+                    {/* month letter */}
+                    <span className={`text-[8px] font-mono font-bold leading-none transition-colors select-none ${
+                      i===currentYTDMonth
+                        ? (darkMode?'text-emerald-400':'text-blue-600')
+                        : i<currentYTDMonth
+                        ? (darkMode?'text-white/40':'text-gray-400')
+                        : (darkMode?'text-white/20 group-hover:text-white/50':'text-black/20 group-hover:text-black/50')
+                    }`}>{m}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* CHART 1 */}
