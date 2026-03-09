@@ -690,12 +690,22 @@ export default function FXApp() {
     portfolio.forEach(curr=>{
       if(curr.code==='USD')return;
       let dMin=Infinity,dMax=-Infinity;
-      const data=mL.map((m,i)=>{const b=curr.monthlyRates[i],a=curr.monthlyActualRates[i];dMin=Math.min(dMin,b,a);dMax=Math.max(dMax,b,a);return{month:m,budget:b,actual:a,range:[b,a]};});
-      const off=(dMax-curr.annualBudgetRate)/(dMax-dMin);
-      const offset=isNaN(off)?0:Math.max(0,Math.min(1,off));
-      const isLocal=curr.rateDirection==='LOCAL_PER_USD';
+      // USD_PER_LOCAL (1 ILS = x USD): actual > budget = over budget = RED
+      // LOCAL_PER_USD (1 USD = x ILS): actual > budget = saving (weaker local = cheaper) = GREEN
+      const isLocalPerUsd=curr.rateDirection==='LOCAL_PER_USD';
+      const overColor=isLocalPerUsd?'#10b981':'#ef4444';
+      const underColor=isLocalPerUsd?'#ef4444':'#10b981';
+      const data=mL.map((m,i)=>{
+        const b=curr.monthlyRates[i],a=curr.monthlyActualRates[i];
+        dMin=Math.min(dMin,b,a);dMax=Math.max(dMax,b,a);
+        const lo=Math.min(b,a),hi=Math.max(b,a);
+        return{month:m,budget:b,actual:a,
+          overRange:a>b?[lo,hi]:[b,b],   // fills only when actual ABOVE budget
+          underRange:a<b?[lo,hi]:[b,b],  // fills only when actual BELOW budget
+        };
+      });
       if(dMin===dMax&&dMin!==Infinity){dMin*=0.95;dMax*=1.05;}
-      result.currencies[curr.id]={data,dataMin:dMin,dataMax:dMax,offset,topColor:isLocal?'#10b981':'#ef4444',bottomColor:isLocal?'#ef4444':'#10b981'};
+      result.currencies[curr.id]={data,dataMin:dMin,dataMax:dMax,overColor,underColor};
     });
     return result;
   },[portfolio]);
@@ -957,7 +967,8 @@ export default function FXApp() {
             {portfolio.filter(c=>c.code!=='USD').map(curr=>{
               const chartData=allChartsData.currencies[curr.id];
               if(!chartData)return null;
-              const{data,dataMin,dataMax,offset,topColor,bottomColor}=chartData;
+              const{data,dataMin,dataMax,overColor,underColor}=chartData;
+              const curIdx=currentYTDMonth-1;
               return(
                 <div key={curr.id} className={`p-4 rounded-xl border ${theme.card} hover:border-blue-500/50 transition-colors`}>
                   <div className="flex justify-between items-center mb-3">
@@ -970,20 +981,28 @@ export default function FXApp() {
                   </div>
                   <div className="h-[140px] sm:h-[170px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={data} margin={{top:4,right:0,left:0,bottom:0}}>
-                        <defs>
-                          <linearGradient id={`split${curr.id}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset={offset} stopColor={topColor} stopOpacity={0.8}/>
-                            <stop offset={offset} stopColor={bottomColor} stopOpacity={0.8}/>
-                          </linearGradient>
-                        </defs>
+                      <AreaChart data={data} margin={{top:24,right:4,left:0,bottom:0}}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.chartGrid} opacity={0.2}/>
                         <XAxis dataKey="month" tick={{fontSize:8,fill:'#64748b'}} axisLine={false} tickLine={false} interval={0}/>
                         <YAxis domain={[dataMin*0.9,dataMax*1.1]} tick={{fontSize:8,fill:'#64748b'}} axisLine={false} tickLine={false} tickFormatter={v=>v.toFixed(2)} width={34}/>
                         <Tooltip content={<CustomRateTooltip darkMode={darkMode}/>} cursor={{stroke:theme.chartGrid,strokeWidth:1}}/>
-                        <Area type="step" dataKey="budget" stroke="#fbbf24" strokeWidth={2} strokeDasharray="4 4" fill="none" name="Budget Rate"/>
-                        <Area type="monotone" dataKey="range" stroke="none" fill={`url(#split${curr.id})`}/>
-                        <Area type="monotone" dataKey="actual" stroke="#fff" strokeWidth={2} fill="none" name="Actual Rate"/>
+                        {/* Coloured fills between the two lines, per-segment */}
+                        <Area type="monotone" dataKey="overRange" stroke="none" fill={overColor} fillOpacity={0.3} legendType="none" isAnimationActive={false}/>
+                        <Area type="monotone" dataKey="underRange" stroke="none" fill={underColor} fillOpacity={0.3} legendType="none" isAnimationActive={false}/>
+                        {/* Budget line – dashed amber; label only on current month */}
+                        <Area type="monotone" dataKey="budget" stroke="#fbbf24" strokeWidth={2} strokeDasharray="4 4" fill="none" name="Budget Rate">
+                          <LabelList dataKey="budget" content={({x,y,value,index})=>{
+                            if(index!==curIdx||typeof value!=='number')return null;
+                            return <text key="bl" x={x} y={y+14} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#fbbf24" fontWeight="bold">{value.toFixed(4)}</text>;
+                          }}/>
+                        </Area>
+                        {/* Actual line – solid white; label only on current month */}
+                        <Area type="monotone" dataKey="actual" stroke="#fff" strokeWidth={2} fill="none" name="Actual Rate">
+                          <LabelList dataKey="actual" content={({x,y,value,index})=>{
+                            if(index!==curIdx||typeof value!=='number')return null;
+                            return <text key="al" x={x} y={y-8} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#fff" fontWeight="bold">{value.toFixed(4)}</text>;
+                          }}/>
+                        </Area>
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
