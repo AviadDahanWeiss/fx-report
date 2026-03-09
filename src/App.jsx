@@ -868,8 +868,8 @@ export default function FXApp() {
                 <span className={`font-mono text-xs font-bold ${theme.accent}`}>{getMonthName(currentYTDMonth).toUpperCase()}</span>
               </div>
               <div className="flex gap-px">
-                {['J','F','M','A','M','J','J','A','S','O','N','D'].map((m,i)=>(
-                  <button key={i} onClick={()=>setCurrentYTDMonth(i)} className="flex-1 flex flex-col items-center gap-1 py-1 rounded group" title={['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i]}>
+                {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m,i)=>(
+                  <button key={i} onClick={()=>setCurrentYTDMonth(i)} className="flex-1 flex flex-col items-center gap-1 py-1 rounded group" title={m}>
                     {/* tick mark — taller + glowing on active month */}
                     <div className={`w-0.5 rounded-full transition-all duration-150 ${
                       i===currentYTDMonth
