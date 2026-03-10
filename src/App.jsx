@@ -165,7 +165,7 @@ const CurrencyRateCard = ({ data, onChange, onRemove, theme, darkMode, onToggleD
 
 // ─── PLANNING MODAL ──────────────────────────────────────────────────────────
 
-const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCurrency, onRemoveCurrency, onBulkImport, onFillForecast, theme, darkMode, currentYTDMonth, scrollToRates, fetchRates, isFetchingRates, lastFetched }) => {
+const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCurrency, onRemoveCurrency, onBulkImport, onFillForecast, onApplyLiveRates, theme, darkMode, currentYTDMonth, scrollToRates, fetchRates, isFetchingRates, lastFetched }) => {
   const ratesSectionRef = useRef(null);
   const [expandedYear, setExpandedYear] = useState(true);
   const [expandedQuarters, setExpandedQuarters] = useState([true, true, true, true]);
@@ -226,15 +226,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
     const toastId = notify.loading('Fetching live rates...');
     try {
       const rateData = await fetchRates();
-      portfolio.forEach(curr => {
-        if (curr.code === 'USD') return;
-        const rawApiRate = rateData[curr.code];
-        if (!rawApiRate) return;
-        const convertedRate = curr.rateDirection === 'USD_PER_LOCAL' ? 1 / rawApiRate : rawApiRate;
-        const newActuals = curr.monthlyActualRates.map((r, i) => i <= currentYTDMonth ? convertedRate : r);
-        const newSources = (curr.monthlyRateSources ?? Array(12).fill('Manual')).map((s, i) => i <= currentYTDMonth ? 'API' : s);
-        onUpdatePortfolio(curr.id, { ...curr, monthlyActualRates: newActuals, monthlyRateSources: newSources, rateSource: 'API' });
-      });
+      onApplyLiveRates(rateData);
       notify.dismiss(toastId);
       notify.success('Live rates applied');
     } catch (err) {
@@ -261,7 +253,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
 
   const handleExport = () => {
     const volH=months.map(m=>`Vol_${m}`),rateH=months.map(m=>`BudRate_${m}`),actVolH=months.map(m=>`ActVol_${m}`),actRateH=months.map(m=>`ActRate_${m}`);
-    const rows=[['# FX Planner Export — reimport with IMPORT button'],['Currency',...volH,...rateH,...actVolH,...actRateH].join(',')];
+    const rows=[['Currency',...volH,...rateH,...actVolH,...actRateH].join(',')];
     portfolio.forEach(curr=>{
       const vols=curr.monthlyVolumes.map(v=>Math.round(v));
       const aVols=(curr.monthlyActualVolumes??curr.monthlyVolumes).map(v=>Math.round(v));
@@ -276,20 +268,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
   const handleDownloadTemplate = () => {
     const ms=months;
     const lines=[
-      '# ============================================================',
-      '# FX BUDGET PLANNER — IMPORT TEMPLATE',
-      '# ============================================================',
-      '# One row per currency. Delete example rows before importing.',
-      '# Columns: Currency | 12x Budget Volumes | 12x Budget Rates (USD/LC)',
-      '#          | 12x Actual/Forecast Volumes | 12x Actual/Forecast Rates (USD/LC)',
-      '#',
       ['Currency',...ms.map(m=>`Vol_${m}`),...ms.map(m=>`BudRate_${m}`),...ms.map(m=>`ActVol_${m}`),...ms.map(m=>`ActRate_${m}`)].join(','),
-      '# --- Example: EUR (budget ~100K/month, rate ~1.08) ---',
-      ['EUR',...Array(12).fill(100000),...Array(12).fill(1.0800),...Array(12).fill(102000),...Array(12).fill(1.0850)].join(','),
-      '# --- Example: GBP (budget ~50K/month, rate ~1.27) ---',
-      ['GBP',...Array(12).fill(50000),...Array(12).fill(1.2700),...Array(12).fill(51000),...Array(12).fill(1.2650)].join(','),
-      '# --- Example: JPY (budget ~10M/month, rate ~0.0067) ---',
-      ['JPY',...Array(12).fill(10000000),...Array(12).fill(0.006700),...Array(12).fill(10200000),...Array(12).fill(0.006650)].join(','),
     ];
     const a=document.createElement('a');a.setAttribute('href','data:text/csv;charset=utf-8,'+encodeURIComponent(lines.join('\n')));a.setAttribute('download','fx_planner_template.csv');document.body.appendChild(a);a.click();a.remove();
     notify.success('Template downloaded');
@@ -328,7 +307,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
   return (
     <>
       <ConfirmModal isOpen={showFillConfirm} title="Fill Forecast Rates" message="This will overwrite all future forecast rates with the current Budget Rate for each currency." confirmLabel="FILL FORECAST" danger={false} onConfirm={()=>{onFillForecast();setShowFillConfirm(false);notify.success('Forecast filled from budget');}} onCancel={()=>setShowFillConfirm(false)}/>
-      <ConfirmModal isOpen={showFetchConfirm} title="Apply Live Exchange Rates" message={`This will fetch today's live rates from the market and apply them as the Actual Rate for all months up to the current YTD month. Manually entered rates for those months will be overwritten.`} confirmLabel="APPLY LIVE RATES" danger={false} onConfirm={()=>{setShowFetchConfirm(false);handleFetchMarketData();}} onCancel={()=>setShowFetchConfirm(false)}/>
+      <ConfirmModal isOpen={showFetchConfirm} title="Apply Live Exchange Rates" message={`This will fetch today's live rates and apply them as the Actual Rate for the current YTD month only. Other months will not be changed.`} confirmLabel="APPLY LIVE RATES" danger={false} onConfirm={()=>{setShowFetchConfirm(false);handleFetchMarketData();}} onCancel={()=>setShowFetchConfirm(false)}/>
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-sm sm:p-4 lg:p-8">
         <div className={`w-full sm:max-w-7xl h-[95vh] sm:h-[90vh] flex flex-col rounded-t-xl sm:rounded-xl shadow-2xl border overflow-hidden ${darkMode ? `${theme.card} border-white/20 text-white` : 'bg-white border-gray-200 text-gray-800'}`}>
 
@@ -706,6 +685,18 @@ export default function FXApp() {
     }));
   }, [currentYTDMonth, setPortfolio]);
 
+  const handleApplyLiveRates = useCallback((rateData) => {
+    setPortfolio(prev => prev.map(curr => {
+      if (curr.code === 'USD') return curr;
+      const rawApiRate = rateData[curr.code];
+      if (!rawApiRate) return curr;
+      const convertedRate = curr.rateDirection === 'USD_PER_LOCAL' ? 1 / rawApiRate : rawApiRate;
+      const newActuals = curr.monthlyActualRates.map((r, i) => i === currentYTDMonth ? convertedRate : r);
+      const newSources = (curr.monthlyRateSources ?? Array(12).fill('Manual')).map((s, i) => i === currentYTDMonth ? 'API' : s);
+      return { ...curr, monthlyActualRates: newActuals, monthlyRateSources: newSources, rateSource: 'API' };
+    }));
+  }, [setPortfolio, currentYTDMonth]);
+
   const handleImportFileMain = (event) => {
     const file = event.target.files[0]; if (!file) return;
     const reader = new FileReader();
@@ -884,7 +875,7 @@ export default function FXApp() {
       <style>{scrollbarStyles}</style>
       <style>{shineStyles}</style>
 
-      <PlanningModal isOpen={isVolumeModalOpen} onClose={()=>setIsVolumeModalOpen(false)} portfolio={portfolio} onUpdatePortfolio={updateCurrency} onAddCurrency={addCurrency} onRemoveCurrency={removeCurrency} onBulkImport={handleBulkImport} onFillForecast={handleFillForecastFromBudget} theme={theme} darkMode={darkMode} currentYTDMonth={currentYTDMonth} scrollToRates={shouldScrollToRates} fetchRates={fetchRates} isFetchingRates={isFetchingRates} lastFetched={lastFetched}/>
+      <PlanningModal isOpen={isVolumeModalOpen} onClose={()=>setIsVolumeModalOpen(false)} portfolio={portfolio} onUpdatePortfolio={updateCurrency} onAddCurrency={addCurrency} onRemoveCurrency={removeCurrency} onBulkImport={handleBulkImport} onFillForecast={handleFillForecastFromBudget} onApplyLiveRates={handleApplyLiveRates} theme={theme} darkMode={darkMode} currentYTDMonth={currentYTDMonth} scrollToRates={shouldScrollToRates} fetchRates={fetchRates} isFetchingRates={isFetchingRates} lastFetched={lastFetched}/>
 
       {/* Mobile top bar */}
       <div className={`sticky top-0 z-20 flex lg:hidden items-center justify-between px-4 py-3 border-b ${darkMode?'bg-black/90 border-white/10':'bg-white/90 border-black/10'} backdrop-blur`}>
@@ -905,7 +896,6 @@ export default function FXApp() {
               Variance
               <span className={`block ${kpiData.ytdVariance<0?theme.danger:theme.accent}`}>
                 {formatFinancial(kpiData.ytdVariance, displayUnit)}
-                {scenarioActive&&<span className="ml-3 text-[0.35em] align-middle bg-purple-500/20 text-purple-400 border border-purple-500/40 px-2 py-0.5 rounded font-mono">SIM</span>}
               </span>
             </h1>
           </div>
@@ -1026,7 +1016,7 @@ export default function FXApp() {
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 {[
                   {label:'YTD Variance',value:kpiData.ytdVariance,tooltip:'Pure FX impact YTD: actual volumes at budget rate minus actual volumes at actual rate.'},
-                  {label:'MTD Variance',value:kpiData.mtdVariance,tooltip:"This month's FX impact: actual volumes at budget rate vs. actual rate."},
+                  {label:'MTD Variance',value:kpiData.mtdVariance,tooltip:'This month FX impact: actual volumes at budget rate vs actual rate.'},
                 ].map(({label,value,tooltip})=>(
                   <div key={label} className={`p-3 rounded-xl border flex flex-col items-center text-center relative ${darkMode?(value>=0?'border-emerald-500/30 bg-emerald-900/10':'border-rose-500/30 bg-rose-900/10'):(value>=0?'border-emerald-400 bg-emerald-50 kpi-gradient-emerald':'border-rose-400 bg-red-50 kpi-gradient-rose')}`}>
                     <div className={`min-h-[2.5rem] flex flex-wrap items-center justify-center gap-1 mb-1 font-mono text-xs uppercase font-bold ${darkMode?(value>=0?'text-emerald-400':'text-rose-400'):(value>=0?'text-emerald-700':'text-rose-700')}`}>
@@ -1045,11 +1035,11 @@ export default function FXApp() {
               {/* Metrics row */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
                 {[
-                  {label:'Annual Budget',value:kpiData.annualBudget,lc:'border-blue-200 bg-blue-50 kpi-gradient-blue',tooltip:'Full-year planned spend at budgeted exchange rates.'},
+                  {label:'Annual Budget',value:kpiData.annualBudget,lc:'border-blue-200 bg-blue-50 kpi-gradient-blue',tooltip:'Full year planned spend at budgeted exchange rates.'},
                   {label:'YTD Budget',value:kpiData.ytdBudget,lc:'border-indigo-200 bg-indigo-50 kpi-gradient-indigo',tooltip:'Budget spend through the YTD month at budget rates.'},
-                  {label:'YTD Act @ Budget Rate',value:kpiData.ytdActualInBudgetRate,lc:'border-violet-200 bg-violet-50 kpi-gradient-violet',tooltip:'Actual volumes priced at budget rates — removes FX, shows volume-driven variance.'},
+                  {label:'YTD Act @ Budget Rate',value:kpiData.ytdActualInBudgetRate,lc:'border-violet-200 bg-violet-50 kpi-gradient-violet',tooltip:'Actual volumes priced at budget rates. Removes FX and isolates volume driven variance.'},
                   {label:'YTD Actual',value:kpiData.ytdActual,lc:'border-amber-200 bg-amber-50 kpi-gradient-amber',deltaVs:kpiData.ytdActualInBudgetRate,tooltip:'Actual spend: actual volumes at actual rates through YTD.'},
-                  {label:'Annual Forecast',value:kpiData.annualForecast,lc:'border-cyan-200 bg-cyan-50 kpi-gradient-cyan',showDelta:true,tooltip:'Full-year forecast using actual/forecast volumes and rates.'},
+                  {label:'Annual Forecast',value:kpiData.annualForecast,lc:'border-cyan-200 bg-cyan-50 kpi-gradient-cyan',showDelta:true,tooltip:'Full year forecast using actual and forecast volumes and rates.'},
                 ].map(({label,value,showDelta,deltaVs,lc,tooltip})=>{
                   const pct = showDelta&&kpiData.annualBudget ? (kpiData.annualForecast-kpiData.annualBudget)/kpiData.annualBudget*100 : null;
                   const isSaving = pct!==null&&pct<=0;
@@ -1109,7 +1099,7 @@ export default function FXApp() {
                         : `h-2 ${darkMode?'bg-white/15 group-hover:bg-white/35':'bg-black/10 group-hover:bg-black/25'}`
                     }`}/>
                     {/* month letter */}
-                    <span className={`text-[8px] font-mono font-bold leading-none transition-colors select-none ${
+                    <span className={`text-[10px] font-mono font-bold leading-none transition-colors select-none ${
                       i===currentYTDMonth
                         ? (darkMode?'text-emerald-400':'text-blue-600')
                         : i<currentYTDMonth
@@ -1133,7 +1123,7 @@ export default function FXApp() {
                 <BarChart layout="vertical" data={expenseChartData} margin={{left:8,right:55,top:0,bottom:15}} barSize={22}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.chartGrid} opacity={0.2}/>
                   <XAxis type="number" tick={{fontSize:10,fill:darkMode?'#64748b':'#374151'}} axisLine={false} tickLine={false} tickFormatter={v=>formatFinancial(v,displayUnit)}/>
-                  <YAxis type="category" dataKey="code" tick={({x,y,payload})=>{const cc=CURRENCY_TO_COUNTRY[payload.value];const tickFill=darkMode?'#94a3b8':'#374151';return(<g key={payload.value} transform={`translate(${x},${y})`}><text x={-24} y={4} textAnchor="end" fill={tickFill} fontSize={10} fontWeight="bold">{payload.value}</text>{cc&&<foreignObject x={-39} y={-6} width="16" height="11" overflow="visible"><img src={`https://flagcdn.com/w40/${cc}.png`} width="14" height="10" alt="" style={{display:'block',borderRadius:'1px'}}/></foreignObject>}</g>);}} width={52} axisLine={false} tickLine={false}/>
+                  <YAxis type="category" dataKey="code" tick={({x,y,payload})=>{const cc=CURRENCY_TO_COUNTRY[payload.value];const tickFill=darkMode?'#94a3b8':'#374151';return(<g key={payload.value} transform={`translate(${x},${y})`}>{cc&&<foreignObject key={`flag-${payload.value}`} x={-50} y={-5} width={14} height={10} overflow="visible"><img src={`https://flagcdn.com/w40/${cc}.png`} width="14" height="10" alt="" style={{display:'block',borderRadius:'1px'}}/></foreignObject>}<text x={cc?-33:-5} y={4} textAnchor="start" fill={tickFill} fontSize={10} fontWeight="bold">{payload.value}</text></g>);}} width={58} axisLine={false} tickLine={false}/>
                   <Bar dataKey="value" radius={[0,4,4,0]}>
                     {expenseChartData.map((entry,i)=><Cell key={i} fill={entry.isRef?'#52525b':getCurrencyColor(entry.code,i)}/>)}
                     <LabelList dataKey="value" position="right" formatter={v=>formatFinancial(v,displayUnit)} style={{fontSize:10,fill:darkMode?'#fff':'#000',fontFamily:'monospace'}}/>
