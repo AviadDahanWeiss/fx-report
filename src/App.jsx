@@ -571,115 +571,156 @@ const ParticleIntro = ({ onStart }) => {
   const [isReady, setIsReady] = useState(false);
   const animIdRef = useRef(null);
   const readyRef = useRef(false);
+  const mouseRef = useRef({ x: -9999, y: -9999 });
+  const stRef = useRef({ frame: 0, formationActive: false, formationTimer: 0, nextFormation: 100, particles: [] });
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    const st = stRef.current;
 
     const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
     resize();
     window.addEventListener('resize', resize);
+    const onMM = e => { mouseRef.current = { x: e.clientX, y: e.clientY }; };
+    window.addEventListener('mousemove', onMM);
 
-    const ROWS = 10;
-    const PER_ROW = 55;
-    const build = () => {
-      const W = canvas.width, H = canvas.height;
-      const rowSpacing = H / (ROWS + 1);
-      const colSpacing = W / (PER_ROW + 1);
-      const particles = [];
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < PER_ROW; c++) {
-          const isEmerald = Math.random() < 0.07;
-          particles.push({
-            id: r * PER_ROW + c,
-            x: -colSpacing * (c * 0.25) - Math.random() * W * 0.4,
-            y: rowSpacing * (r + 1) + (Math.random() - 0.5) * rowSpacing * 0.4,
-            vx: 2.5 + Math.random() * 3.5,
-            vy: (Math.random() - 0.5) * 1.2,
-            tx: colSpacing * (c + 1) + (r % 2 ? colSpacing * 0.5 : 0),
-            ty: rowSpacing * (r + 1),
-            settled: false,
-            size: 0.9 + Math.random() * 1.1,
-            alpha: 0.55 + Math.random() * 0.45,
-            phase: Math.random() * Math.PI * 2,
-            row: r,
-            col: c,
-            color: isEmerald ? [52,211,153] : [210,228,255],
-          });
+    // Build particles with random Brownian motion
+    const N = 380;
+    st.particles = Array.from({ length: N }, (_, i) => ({
+      id: i,
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 1.4,
+      vy: (Math.random() - 0.5) * 1.4,
+      size: 0.8 + Math.random() * 1.6,
+      baseAlpha: 0.22 + Math.random() * 0.48,
+      phase: Math.random() * Math.PI * 2,
+      tx: null, ty: null, inFormation: false,
+      color: Math.random() < 0.09 ? [52,211,153] : [200,222,255],
+    }));
+
+    const CURRENCIES = ['USD','ILS','GBP','EUR','JPY','CNY','CAD'];
+
+    // Sample pixel positions of text rendered on an offscreen canvas
+    const getTextPixels = (text, cx, cy) => {
+      const fs = 68;
+      const off = document.createElement('canvas');
+      off.width = Math.ceil(fs * 0.65 * text.length) + 48;
+      off.height = fs + 24;
+      const c = off.getContext('2d');
+      c.fillStyle = '#fff';
+      c.font = `bold ${fs}px monospace`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(text, off.width / 2, off.height / 2);
+      const d = c.getImageData(0, 0, off.width, off.height).data;
+      const pts = [];
+      for (let y = 0; y < off.height; y += 5) {
+        for (let x = 0; x < off.width; x += 5) {
+          if (d[(y * off.width + x) * 4 + 3] > 100) {
+            pts.push({ x: cx + x - off.width / 2, y: cy + y - off.height / 2 });
+          }
         }
       }
-      return particles;
+      return pts;
     };
 
-    let particles = build();
-    let frame = 0;
-    const SETTLE_START = 70;
+    const triggerFormation = () => {
+      const W = canvas.width, H = canvas.height;
+      const text = CURRENCIES[Math.floor(Math.random() * CURRENCIES.length)];
+      const cx = 130 + Math.random() * (W - 260);
+      const cy = 90  + Math.random() * (H - 180);
+      const pts = getTextPixels(text, cx, cy);
+      if (!pts.length) return;
+      // Recruit particles closest to the formation centre
+      const free = st.particles.filter(p => !p.inFormation);
+      free.sort((a, b) => (a.x-cx)**2+(a.y-cy)**2 - ((b.x-cx)**2+(b.y-cy)**2));
+      const count = Math.min(pts.length, free.length, 90);
+      for (let i = 0; i < count; i++) {
+        free[i].tx = pts[i].x;
+        free[i].ty = pts[i].y;
+        free[i].inFormation = true;
+      }
+      st.formationActive = true;
+      st.formationTimer = 0;
+    };
 
     const draw = () => {
-      frame++;
+      st.frame++;
       const W = canvas.width, H = canvas.height;
+      const mouse = mouseRef.current;
 
-      ctx.fillStyle = 'rgba(0,0,0,0.17)';
+      ctx.fillStyle = 'rgba(0,0,0,0.13)';
       ctx.fillRect(0, 0, W, H);
 
-      // Faint horizontal grid lines (like the blue deposition grid on the reference site)
-      for (let r = 0; r < ROWS; r++) {
-        const ly = H / (ROWS + 1) * (r + 1);
-        ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(W, ly);
-        ctx.strokeStyle = `rgba(60,140,220,${0.03 + Math.sin(frame * 0.008 + r * 0.7) * 0.015})`;
-        ctx.lineWidth = 0.5; ctx.stroke();
+      // Formation lifecycle
+      if (!st.formationActive && st.frame >= st.nextFormation) triggerFormation();
+      if (st.formationActive) {
+        st.formationTimer++;
+        if (st.formationTimer > 140) {
+          st.particles.forEach(p => { p.tx = null; p.ty = null; p.inFormation = false; });
+          st.formationActive = false;
+          st.nextFormation = st.frame + 180 + Math.floor(Math.random() * 160);
+        }
       }
 
-      let settled = 0;
-      particles.forEach(p => {
-        const [cr,cg,cb] = p.color;
-        if (p.settled) {
-          settled++;
-          const s = p.alpha * (0.65 + Math.sin(frame * 0.022 + p.phase) * 0.3);
-          ctx.beginPath(); ctx.arc(p.tx, p.ty, p.size + 0.25, 0, Math.PI*2);
-          ctx.fillStyle = `rgba(${cr},${cg},${cb},${s})`; ctx.fill();
-          return;
-        }
-        // Row-staggered homing: later rows settle later; right cols settle later
-        const settleAt = SETTLE_START + p.row * 12 + (p.col / PER_ROW) * 25;
-        if (frame >= settleAt) {
+      st.particles.forEach(p => {
+        const [cr, cg, cb] = p.color;
+
+        if (p.inFormation && p.tx !== null) {
+          // Home toward letter position
           const dx = p.tx - p.x, dy = p.ty - p.y;
           const dist = Math.sqrt(dx*dx + dy*dy);
-          if (dist < 1.5) { p.settled = true; }
-          else {
-            const f = Math.min(0.06, 0.03 + (frame - settleAt) * 0.0003);
-            p.vx += dx * f; p.vy += dy * f;
-            p.vx *= 0.87; p.vy *= 0.87;
-            p.x += p.vx; p.y += p.vy;
-          }
+          const f = dist > 60 ? 0.06 : 0.11;
+          p.vx += dx * f; p.vy += dy * f;
+          p.vx *= 0.72; p.vy *= 0.72;
         } else {
-          p.x += p.vx; p.y += p.vy * 0.97; p.vy *= 0.995;
+          // Brownian drift
+          p.vx += (Math.random() - 0.5) * 0.22;
+          p.vy += (Math.random() - 0.5) * 0.22;
+          p.vx *= 0.978; p.vy *= 0.978;
+          // Mouse attraction
+          const mx = mouse.x - p.x, my = mouse.y - p.y;
+          const md = Math.sqrt(mx*mx + my*my);
+          if (md < 190 && md > 0) {
+            const str = (190 - md) / 190 * 0.017;
+            p.vx += mx * str; p.vy += my * str;
+          }
         }
-        const fadeIn = p.x < 0 ? 0 : Math.min(1, p.x / 80);
-        if (fadeIn > 0) {
-          ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
-          ctx.fillStyle = `rgba(${cr},${cg},${cb},${p.alpha * fadeIn * 0.75})`; ctx.fill();
-        }
+
+        p.x += p.vx; p.y += p.vy;
+        // Wrap edges
+        if (p.x < -4) p.x = W + 4; else if (p.x > W + 4) p.x = -4;
+        if (p.y < -4) p.y = H + 4; else if (p.y > H + 4) p.y = -4;
+
+        const shimmer = p.baseAlpha * (0.58 + Math.sin(st.frame * 0.034 + p.phase) * 0.38);
+        const sz = p.size + (p.inFormation ? 0.5 : 0);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, sz, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${cr},${cg},${cb},${shimmer})`;
+        ctx.fill();
       });
 
-      if (!readyRef.current && settled > particles.length * 0.78) {
-        readyRef.current = true;
-        setIsReady(true);
-      }
+      if (!readyRef.current && st.frame > 90) { readyRef.current = true; setIsReady(true); }
       animIdRef.current = requestAnimationFrame(draw);
     };
 
     animIdRef.current = requestAnimationFrame(draw);
-    return () => { cancelAnimationFrame(animIdRef.current); window.removeEventListener('resize', resize); };
+    return () => {
+      cancelAnimationFrame(animIdRef.current);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('mousemove', onMM);
+    };
   }, []);
 
   return (
     <div className="fixed inset-0 bg-black z-40 overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full"/>
       <div className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1000 ${isReady?'opacity-100':'opacity-0'}`}
-           style={{pointerEvents: isReady?'auto':'none'}}>
-        <p className="text-white/30 font-mono text-[9px] tracking-[0.5em] uppercase mb-10">System Initialized</p>
+           style={{pointerEvents: isReady ? 'auto' : 'none'}}>
+        <p className="text-white/30 font-mono text-[9px] tracking-[0.5em] uppercase mb-10">FX Markets Online</p>
         <button onClick={onStart}
           className="px-12 py-4 bg-transparent border border-white/25 text-white font-bold tracking-[0.3em] text-xs hover:bg-white hover:text-black transition-all duration-300 uppercase">
           Enter Dashboard
@@ -1227,11 +1268,11 @@ export default function FXApp() {
                   {['ANNUAL','YTD'].map(m=><button key={m} onClick={()=>setViewMode(m)} className={`px-2 py-0.5 text-[9px] border rounded ${viewMode===m?(darkMode?'bg-white text-black border-white':'bg-gray-900 text-white border-gray-900'):(darkMode?'border-white/20 text-white/60':'border-gray-300 text-gray-500')}`}>{m}</button>)}
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart key={expenseChartData.map(d=>d.code).join(',')} layout="vertical" data={expenseChartData} margin={{left:8,right:55,top:0,bottom:15}} barSize={22} isAnimationActive={false}>
+              <ResponsiveContainer key={expenseChartData.map(d=>d.code).join(',')} width="100%" height="100%">
+                <BarChart layout="vertical" data={expenseChartData} margin={{left:8,right:55,top:0,bottom:15}} barSize={22} isAnimationActive={false}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.chartGrid} opacity={0.2}/>
                   <XAxis type="number" tick={{fontSize:10,fill:darkMode?'#64748b':'#374151'}} axisLine={false} tickLine={false} tickFormatter={v=>formatFinancial(v,displayUnit)}/>
-                  <YAxis type="category" dataKey="code" tick={({x,y,payload})=>{const cc=CURRENCY_TO_COUNTRY[payload.value];const tickFill=darkMode?'#94a3b8':'#374151';return(<g key={payload.value} transform={`translate(${x},${y})`}>{cc&&<foreignObject key={`flag-${payload.value}`} x={-50} y={-5} width={14} height={10} overflow="visible"><img src={`https://flagcdn.com/w40/${cc}.png`} width="14" height="10" alt="" style={{display:'block',borderRadius:'1px'}}/></foreignObject>}<text x={cc?-33:-5} y={4} textAnchor="start" fill={tickFill} fontSize={10} fontWeight="bold">{payload.value}</text></g>);}} width={58} axisLine={false} tickLine={false}/>
+                  <YAxis type="category" dataKey="code" tick={({x,y,payload})=>{const cc=CURRENCY_TO_COUNTRY[payload.value];const tickFill=darkMode?'#94a3b8':'#374151';return(<g transform={`translate(${x},${y})`}>{cc&&<image key={`flag-${payload.value}`} href={`https://flagcdn.com/w40/${cc}.png`} x={-50} y={-5} width={14} height={10}/>}<text x={cc?-33:-5} y={4} textAnchor="start" fill={tickFill} fontSize={10} fontWeight="bold">{payload.value}</text></g>);}} width={58} axisLine={false} tickLine={false}/>
                   <Bar dataKey="value" radius={[0,4,4,0]} isAnimationActive={false}>
                     {expenseChartData.map((entry,i)=><Cell key={i} fill={entry.isRef?'#52525b':getCurrencyColor(entry.code,i)}/>)}
                     <LabelList dataKey="value" position="right" formatter={v=>formatFinancial(v,displayUnit)} style={{fontSize:10,fill:darkMode?'#fff':'#000',fontFamily:'monospace'}}/>
