@@ -7,7 +7,7 @@ import {
   Activity, DollarSign, Calendar, Layers, ArrowLeftRight, PieChart, BarChart2,
   Download, Upload, FileSpreadsheet, RefreshCw, Table, Zap,
   PanelLeftClose, PanelLeftOpen, Menu, Sun, Moon, Plus, Trash2,
-  LayoutDashboard, PlusSquare, MinusSquare
+  LayoutDashboard, PlusSquare, MinusSquare, Info, Copy
 } from 'lucide-react';
 
 import { ISO_CURRENCIES, CURRENCY_TO_COUNTRY, getCurrencyColor, DEFAULT_PORTFOLIO } from './constants/currencies';
@@ -201,6 +201,20 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
   const handleRateQuarterUpdate = (id, qi, val) => { const c=portfolio.find(x=>x.id===id); const v=Number(val); const r=[...c.monthlyRates]; const qr=[...c.quarterlyRates]; qr[qi]=v; for(let i=0;i<3;i++) r[qi*3+i]=v; onUpdatePortfolio(id,{...c,monthlyRates:r,quarterlyRates:qr,annualBudgetRate:getAnnualRate(r)}); };
   const handleRateYearUpdate = (id, val) => { const v=Number(val); const c=portfolio.find(x=>x.id===id); onUpdatePortfolio(id,{...c,annualBudgetRate:v,quarterlyRates:Array(4).fill(v),monthlyRates:Array(12).fill(v),budgetType:'annual'}); };
   const handleActualMonthUpdate = (id, mi, val) => { const c=portfolio.find(x=>x.id===id); const r=[...c.monthlyActualRates]; const s=[...(c.monthlyRateSources||Array(12).fill('Manual'))]; r[mi]=Number(val); s[mi]='UI-Manual'; onUpdatePortfolio(id,{...c,monthlyActualRates:r,monthlyRateSources:s}); };
+  const handleActualVolumeMonthUpdate = (id, mi, val) => { const c=portfolio.find(x=>x.id===id); const v=[...(c.monthlyActualVolumes??[...c.monthlyVolumes])]; v[mi]=Number(val); onUpdatePortfolio(id,{...c,monthlyActualVolumes:v}); };
+  const handleActualVolumeQuarterUpdate = (id, qi, val) => { const c=portfolio.find(x=>x.id===id); const vpm=Number(val)/3; const v=[...(c.monthlyActualVolumes??[...c.monthlyVolumes])]; for(let i=0;i<3;i++) v[qi*3+i]=vpm; onUpdatePortfolio(id,{...c,monthlyActualVolumes:v}); };
+  const handleActualVolumeYearUpdate = (id, val) => { const c=portfolio.find(x=>x.id===id); onUpdatePortfolio(id,{...c,monthlyActualVolumes:Array(12).fill(Number(val)/12)}); };
+  const handleCopyToYearEnd = (id, mi, field) => {
+    if (mi >= 11) return;
+    const c = portfolio.find(x => x.id===id);
+    const src = field==='monthlyRates'?c.monthlyRates:field==='monthlyActualRates'?c.monthlyActualRates:field==='monthlyActualVolumes'?(c.monthlyActualVolumes??c.monthlyVolumes):c.monthlyVolumes;
+    const arr = [...src]; const val = arr[mi];
+    for (let i=mi+1;i<12;i++) arr[i]=val;
+    if (field==='monthlyRates') { onUpdatePortfolio(id,{...c,monthlyRates:arr,quarterlyRates:quarters.map((_,qi)=>getQuarterRate(arr,qi)),annualBudgetRate:getAnnualRate(arr)}); }
+    else if (field==='monthlyActualVolumes') { onUpdatePortfolio(id,{...c,monthlyActualVolumes:arr}); }
+    else if (field==='monthlyActualRates') { onUpdatePortfolio(id,{...c,monthlyActualRates:arr}); }
+    else { onUpdatePortfolio(id,{...c,monthlyVolumes:arr}); }
+  };
 
   const handleFetchMarketData = async () => {
     const toastId = notify.loading('Fetching live rates...');
@@ -359,7 +373,8 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                         {expandedYear&&quarters.map((q,qi)=>(
                           <React.Fragment key={q}>
                             {!expandedQuarters[qi]&&<td className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}><FormattedInput value={Math.round(getQuarterVolume(curr.monthlyVolumes,qi))} onChange={v=>handleVolumeQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-xs outline-none text-emerald-300/80"/></td>}
-                            {expandedQuarters[qi]&&[0,1,2].map(o=><td key={o} className={`p-2 border-l ${darkMode?'border-white/10':'border-gray-200'}`}><FormattedInput value={Math.round(curr.monthlyVolumes[qi*3+o])} onChange={v=>handleVolumeMonthUpdate(curr.id,qi*3+o,v)} className={`w-full bg-transparent text-center font-mono text-xs outline-none ${darkMode?'text-white/50':'text-gray-400'}`}/></td>)}
+                            {expandedQuarters[qi]&&[0,1,2].map(o=>{const mi=qi*3+o;return(<td key={mi} className={`border-l relative group/vcell ${darkMode?'border-white/10':'border-gray-200'}`}><FormattedInput value={Math.round(curr.monthlyVolumes[mi])} onChange={v=>handleVolumeMonthUpdate(curr.id,mi,v)} className={`p-2 w-full bg-transparent text-center font-mono text-xs outline-none ${darkMode?'text-white/50':'text-gray-500'}`}/>{mi<11&&(<button onMouseDown={e=>{e.preventDefault();handleCopyToYearEnd(curr.id,mi,'monthlyVolumes');}} title="Copy till year end" className="absolute top-0 right-0 z-20 w-[18px] h-[18px] opacity-0 group-focus-within/vcell:opacity-100 bg-emerald-500 hover:bg-emerald-400 text-white rounded-bl-lg flex items-center justify-center text-[9px] transition-opacity cursor-pointer">→</button>)}</td>);})}
+
                           </React.Fragment>
                         ))}
                       </tr>
@@ -370,7 +385,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                           <div className="relative">
                             <input placeholder="ADD..." value={currencySearch} onChange={e=>{setCurrencySearch(e.target.value.toUpperCase());setShowCurrencyDropdown(true);}} onFocus={()=>setShowCurrencyDropdown(true)} onKeyDown={e=>{if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();handleAdd(null);}}} className={`w-20 p-1.5 rounded text-xs font-mono outline-none focus:ring-1 focus:ring-emerald-400 ${darkMode?'bg-white/10 text-white placeholder-white/30':'bg-black/5 text-gray-800 placeholder-gray-400'}`} maxLength={3}/>
                             {showCurrencyDropdown&&currencySearch.length>0&&(
-                              <div className={`absolute top-full left-0 mt-1 w-32 border rounded shadow-xl max-h-40 overflow-y-auto z-50 custom-scrollbar ${darkMode?'bg-[#18181b] border-white/20':'bg-white border-gray-200'}`}>
+                              <div className={`absolute bottom-full left-0 mb-1 w-32 border rounded shadow-xl max-h-40 overflow-y-auto z-[100] custom-scrollbar ${darkMode?'bg-[#18181b] border-white/20':'bg-white border-gray-300 shadow-lg'}`}>
                                 {filteredCurrencies.map(c=><button key={c} onClick={()=>handleAdd(c)} className={`w-full text-left px-3 py-2 text-xs font-mono hover:bg-emerald-500/20 hover:text-emerald-400 ${darkMode?'text-white':'text-gray-700'}`}>{c}</button>)}
                               </div>
                             )}
@@ -416,7 +431,55 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                           {expandedYear&&quarters.map((q,qi)=>(
                             <React.Fragment key={q}>
                               {!expandedQuarters[qi]&&<td className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}><DecimalInput value={getQuarterRate(curr.monthlyRates,qi)} onChange={v=>handleRateQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-sm outline-none text-blue-300/80"/></td>}
-                              {expandedQuarters[qi]&&[0,1,2].map(o=>{const mi=qi*3+o;return<td key={mi} className={`p-2 border-l ${darkMode?'border-white/10':'border-gray-200'}`}><DecimalInput value={curr.monthlyRates[mi]} onChange={v=>handleRateMonthUpdate(curr.id,mi,v)} className={`w-full bg-transparent text-center font-mono text-xs outline-none ${darkMode?'text-white/50':'text-gray-400'}`}/></td>;})}
+                              {expandedQuarters[qi]&&[0,1,2].map(o=>{const mi=qi*3+o;return<td key={mi} className={`border-l relative group/rcell ${darkMode?'border-white/10':'border-gray-200'}`}><DecimalInput value={curr.monthlyRates[mi]} onChange={v=>handleRateMonthUpdate(curr.id,mi,v)} className={`p-2 w-full bg-transparent text-center font-mono text-xs outline-none ${darkMode?'text-white/50':'text-gray-500'}`}/>{mi<11&&(<button onMouseDown={e=>{e.preventDefault();handleCopyToYearEnd(curr.id,mi,'monthlyRates');}} title="Copy till year end" className="absolute top-0 right-0 z-20 w-[18px] h-[18px] opacity-0 group-focus-within/rcell:opacity-100 bg-blue-500 hover:bg-blue-400 text-white rounded-bl-lg flex items-center justify-center text-[9px] transition-opacity cursor-pointer">→</button>)}</td>;})}
+                            </React.Fragment>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* ACTUAL/FORECAST VOLUME TABLE */}
+            <div className="mb-12">
+              <h3 className={`font-mono text-sm font-bold text-amber-500 mb-4 flex items-center gap-2 border-t pt-8 ${darkMode?'border-white/10':'border-gray-200'}`}><Activity size={16}/> ACTUAL / FORECAST VOLUME (LOCAL CURRENCY)</h3>
+              <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
+                <table className="w-full min-w-[480px] text-left border-collapse">
+                  <thead className={`sticky top-0 z-20 ${darkMode?'bg-[#18181b]':'bg-gray-100'}`}>
+                    <tr className={`border-b ${darkMode?'border-white/20':'border-gray-200'}`}>
+                      <th className="p-2 sm:p-3 font-mono text-xs opacity-70 w-36 sm:w-52">CURRENCY</th>
+                      <th className={`p-2 sm:p-3 font-mono text-xs text-center border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>
+                        <div className="flex items-center justify-center gap-1.5">{planningYear} TOTAL</div>
+                      </th>
+                      {expandedYear&&quarters.map((q,qi)=>(
+                        <React.Fragment key={q}>
+                          {!expandedQuarters[qi]&&<th className={`p-2 sm:p-3 font-mono text-xs text-center border-l min-w-[88px] ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>{q}</th>}
+                          {expandedQuarters[qi]&&[0,1,2].map(o=>{const mi=qi*3+o;const isAct=mi<=currentYTDMonth;return<th key={o} className={`p-2 font-mono text-xs text-center border-l min-w-[68px] ${darkMode?'border-white/10':'border-gray-200'} ${isAct?'text-amber-500':'opacity-70'}`}>{months[mi].toUpperCase()}</th>;})}
+                        </React.Fragment>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {portfolio.map(curr=>{
+                      const aVols = curr.monthlyActualVolumes ?? curr.monthlyVolumes;
+                      return(
+                        <tr key={curr.id} className={`border-b ${darkMode?'border-white/5 hover:bg-white/5':'border-gray-100 hover:bg-gray-50'}`}>
+                          <td className={`p-2 sm:p-3 font-bold font-mono border-r ${darkMode?'border-white/10':'border-gray-200'}`}>
+                            <div className="flex items-center gap-1.5"><FlagIcon code={curr.code}/><span className="text-sm">{curr.code}</span></div>
+                          </td>
+                          <td className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}><FormattedInput value={Math.round(aVols.reduce((a,b)=>a+b,0))} onChange={v=>handleActualVolumeYearUpdate(curr.id,v)} className="w-full bg-transparent text-center font-bold outline-none text-amber-500 text-sm font-mono"/></td>
+                          {expandedYear&&quarters.map((q,qi)=>(
+                            <React.Fragment key={q}>
+                              {!expandedQuarters[qi]&&<td className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}><FormattedInput value={Math.round(aVols.slice(qi*3,qi*3+3).reduce((a,b)=>a+b,0))} onChange={v=>handleActualVolumeQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-xs outline-none text-amber-400/80"/></td>}
+                              {expandedQuarters[qi]&&[0,1,2].map(o=>{
+                                const mi=qi*3+o;const isAct=mi<=currentYTDMonth;
+                                return(<td key={mi} className={`border-l relative group/avcell ${darkMode?'border-white/10':'border-gray-200'}`}>
+                                  <FormattedInput value={Math.round(aVols[mi])} onChange={v=>handleActualVolumeMonthUpdate(curr.id,mi,v)} className={`p-2 w-full bg-transparent text-center font-mono text-xs outline-none ${isAct?'text-amber-500 font-bold':(darkMode?'text-white/40 italic':'text-gray-400 italic')}`}/>
+                                  {mi<11&&(<button onMouseDown={e=>{e.preventDefault();handleCopyToYearEnd(curr.id,mi,'monthlyActualVolumes');}} title="Copy till year end" className="absolute top-0 right-0 z-20 w-[18px] h-[18px] opacity-0 group-focus-within/avcell:opacity-100 bg-amber-500 hover:bg-amber-400 text-white rounded-bl-lg flex items-center justify-center text-[9px] transition-opacity cursor-pointer">→</button>)}
+                                </td>);
+                              })}
                             </React.Fragment>
                           ))}
                         </tr>
@@ -448,9 +511,9 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                       <th className="p-2 sm:p-3 font-mono text-xs opacity-70 w-36 sm:w-52">CURRENCY / SOURCE</th>
                       {expandedYear?quarters.map((q,qi)=>(
                         <React.Fragment key={q}>
-                          {expandedQuarters[qi]?[0,1,2].map(o=><th key={o} className={`p-2 font-mono text-xs text-center border-l min-w-[68px] opacity-70 ${darkMode?'border-white/10':'border-gray-200'}`}>{months[qi*3+o].toUpperCase()}</th>):<th className={`p-2 sm:p-3 font-mono text-xs text-center border-l min-w-[88px] ${darkMode?'border-white/10':'border-gray-200'}`}>{q} (AVG)</th>}
+                          {expandedQuarters[qi]?[0,1,2].map(o=>{const mi=qi*3+o;const isAct=mi<=currentYTDMonth;return<th key={o} className={`p-2 font-mono text-xs text-center border-l min-w-[68px] ${darkMode?'border-white/10':'border-gray-200'} ${isAct?'text-amber-500':'opacity-70'}`}>{months[mi].toUpperCase()}</th>;}):<th className={`p-2 sm:p-3 font-mono text-xs text-center border-l min-w-[88px] ${darkMode?'border-white/10':'border-gray-200'} opacity-70`}>{q} (AVG)</th>}
                         </React.Fragment>
-                      )):<th className={`p-2 sm:p-3 font-mono text-xs text-center border-l ${darkMode?'border-white/10':'border-gray-200'}`}>YEAR AVG</th>}
+                      )):<th className={`p-2 sm:p-3 font-mono text-xs text-center border-l ${darkMode?'border-white/10':'border-gray-200'} opacity-70`}>YEAR AVG</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -469,17 +532,18 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                               {expandedQuarters[qi]?[0,1,2].map(o=>{
                                 const mi=qi*3+o,isActual=mi<=currentYTDMonth,src=curr.monthlyRateSources?curr.monthlyRateSources[mi]:'Manual';
                                 return(
-                                  <td key={mi} className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>
-                                    <div className="relative">
-                                      <DecimalInput value={curr.monthlyActualRates[mi]} onChange={v=>handleActualMonthUpdate(curr.id,mi,v)} className={`w-full bg-transparent text-center font-mono text-sm outline-none ${isActual?(darkMode?'text-white font-bold':'text-gray-900 font-bold'):(darkMode?'text-white/40 italic':'text-gray-400 italic')}`}/>
-                                      {isActual&&<div className="absolute top-0 right-0 w-1 h-1 bg-emerald-500 rounded-full"/>}
+                                  <td key={mi} className={`border-l relative group/arcell ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>
+                                    <div className="relative p-2">
+                                      <DecimalInput value={curr.monthlyActualRates[mi]} onChange={v=>handleActualMonthUpdate(curr.id,mi,v)} className={`w-full bg-transparent text-center font-mono text-xs outline-none ${isActual?'text-amber-500 font-bold':(darkMode?'text-white/40 italic':'text-gray-400 italic')}`}/>
+                                      {isActual&&<div className="absolute top-1 right-1 w-1 h-1 bg-amber-500 rounded-full"/>}
                                       <div className="absolute -bottom-1.5 right-0 opacity-80 scale-75 origin-bottom-right pointer-events-none"><MiniSourceChip source={src}/></div>
                                     </div>
+                                    {mi<11&&(<button onMouseDown={e=>{e.preventDefault();handleCopyToYearEnd(curr.id,mi,'monthlyActualRates');}} title="Copy till year end" className="absolute top-0 right-0 z-20 w-[18px] h-[18px] opacity-0 group-focus-within/arcell:opacity-100 bg-amber-500 hover:bg-amber-400 text-white rounded-bl-lg flex items-center justify-center text-[9px] transition-opacity cursor-pointer">→</button>)}
                                   </td>
                                 );
-                              }):<td className={`p-2 border-l ${darkMode?'border-white/10':'border-gray-200'}`}><div className="text-center font-mono text-sm opacity-50">{(curr.monthlyActualRates.slice(qi*3,qi*3+3).reduce((a,b)=>a+b,0)/3).toFixed(4)}</div></td>}
+                              }):<td className={`p-2 border-l ${darkMode?'border-white/10':'border-gray-200'}`}><div className="text-center font-mono text-xs opacity-50">{(curr.monthlyActualRates.slice(qi*3,qi*3+3).reduce((a,b)=>a+b,0)/3).toFixed(4)}</div></td>}
                             </React.Fragment>
-                          )):<td className={`p-2 border-l ${darkMode?'border-white/10':'border-gray-200'}`}><div className="text-center font-mono text-sm opacity-50">{(curr.monthlyActualRates.reduce((a,b)=>a+b,0)/12).toFixed(4)}</div></td>}
+                          )):<td className={`p-2 border-l ${darkMode?'border-white/10':'border-gray-200'}`}><div className="text-center font-mono text-xs opacity-50">{(curr.monthlyActualRates.reduce((a,b)=>a+b,0)/12).toFixed(4)}</div></td>}
                         </tr>
                       );
                     })}
@@ -562,7 +626,7 @@ export default function FXApp() {
   const addCurrency = useCallback((code = 'EUR') => {
     if (portfolio.some(c => c.code === code)) return;
     const newId = Math.max(...portfolio.map(c => c.id), 0) + 1;
-    setPortfolio(prev => [...prev, { id:newId, code, budgetType:'annual', annualBudgetRate:1.0, quarterlyRates:Array(4).fill(1.0), monthlyRates:Array(12).fill(1.0), actualRate:1.05, monthlyActualRates:Array(12).fill(1.05), monthlyVolumes:Array(12).fill(0), isCollapsed:true, rateDirection:'USD_PER_LOCAL', rateSource:'UI-Manual', monthlyRateSources:Array(12).fill('UI-Manual') }]);
+    setPortfolio(prev => [...prev, { id:newId, code, budgetType:'annual', annualBudgetRate:1.0, quarterlyRates:Array(4).fill(1.0), monthlyRates:Array(12).fill(1.0), actualRate:1.05, monthlyActualRates:Array(12).fill(1.05), monthlyVolumes:Array(12).fill(0), monthlyActualVolumes:Array(12).fill(0), isCollapsed:true, rateDirection:'USD_PER_LOCAL', rateSource:'UI-Manual', monthlyRateSources:Array(12).fill('UI-Manual') }]);
   }, [portfolio, setPortfolio]);
 
   const removeCurrency = useCallback((id) => {
@@ -642,20 +706,22 @@ export default function FXApp() {
 
   // ── KPI ──
   const calcKpi = useCallback((port) => {
-    let annualBudget=0,ytdBudget=0,ytdActual=0,annualForecast=0,mtdBudget=0,mtdActual=0;
+    let annualBudget=0,ytdBudget=0,ytdActual=0,ytdActualInBudgetRate=0,annualForecast=0,mtdBudget=0,mtdActual=0,mtdActualInBudgetRate=0;
     port.forEach(curr => {
+      const actualVols = curr.monthlyActualVolumes ?? curr.monthlyVolumes;
       curr.monthlyVolumes.forEach((vol,i) => {
         const bRate=curr.monthlyRates[i]||1, aRate=curr.monthlyActualRates[i]||1;
-        const mBudget=curr.rateDirection==='USD_PER_LOCAL'?vol*bRate:vol/bRate;
-        const mActual=curr.rateDirection==='USD_PER_LOCAL'?vol*aRate:vol/aRate;
-        annualBudget+=mBudget;
-        if(i<=currentYTDMonth){ytdBudget+=mBudget;ytdActual+=mActual;}
-        if(i===currentYTDMonth){mtdBudget+=mBudget;mtdActual+=mActual;}
-        if(i<=currentYTDMonth){annualForecast+=mActual;}
-        else{const fRate=curr.monthlyActualRates[i]||bRate;annualForecast+=curr.rateDirection==='USD_PER_LOCAL'?vol*fRate:vol/fRate;}
+        const aVol = actualVols[i] ?? vol;
+        const mBudget = curr.rateDirection==='USD_PER_LOCAL'?vol*bRate:vol/bRate;
+        const mActualInBudget = curr.rateDirection==='USD_PER_LOCAL'?aVol*bRate:aVol/bRate;
+        const mActual = curr.rateDirection==='USD_PER_LOCAL'?aVol*aRate:aVol/aRate;
+        annualBudget += mBudget;
+        annualForecast += mActual; // actualVol × actualForecastRate for all months
+        if(i<=currentYTDMonth){ytdBudget+=mBudget;ytdActualInBudgetRate+=mActualInBudget;ytdActual+=mActual;}
+        if(i===currentYTDMonth){mtdBudget+=mBudget;mtdActualInBudgetRate+=mActualInBudget;mtdActual+=mActual;}
       });
     });
-    return{annualBudget,ytdBudget,ytdActual,ytdVariance:ytdBudget-ytdActual,mtdVariance:mtdBudget-mtdActual,annualForecast};
+    return{annualBudget,ytdBudget,ytdActualInBudgetRate,ytdActual,ytdVariance:ytdActualInBudgetRate-ytdActual,mtdVariance:mtdActualInBudgetRate-mtdActual,annualForecast};
   },[currentYTDMonth]);
 
   const kpiData = useMemo(()=>calcKpi(activePortfolio),[activePortfolio,calcKpi]);
@@ -689,6 +755,8 @@ export default function FXApp() {
       if(!isAccumulatedForecast&&i>currentYTDMonth)return{name:m};
       const md={name:m,total:0};
       activePortfolio.forEach(curr=>{const vol=curr.monthlyVolumes[i],bR=curr.monthlyRates[i]||1,aR=curr.monthlyActualRates[i]||1;const mB=curr.rateDirection==='USD_PER_LOCAL'?vol*bR:vol/bR,mA=curr.rateDirection==='USD_PER_LOCAL'?vol*aR:vol/aR;running[curr.code]+=(mB-mA);md[curr.code]=running[curr.code];md.total+=running[curr.code];});
+      // positiveTop = sum of positive running values → used to anchor total labels above all bars
+      md.positiveTop = activePortfolio.reduce((s,c)=>running[c.code]>0?s+running[c.code]:s, 0);
       return md;
     });
   },[activePortfolio,currentYTDMonth,isAccumulatedForecast]);
@@ -741,17 +809,26 @@ export default function FXApp() {
   const theme = darkMode ? {
     bg:'bg-black',text:'text-slate-100',card:'bg-zinc-900/50 border-zinc-800',accent:'text-emerald-400',danger:'text-rose-500',chartGrid:'#27272a',
   }:{
-    bg:'bg-gray-50',text:'text-gray-900',card:'bg-white border-gray-200 shadow-sm',accent:'text-blue-600',danger:'text-red-600',chartGrid:'#e2e8f0',
+    bg:'bg-gradient-to-br from-slate-50 via-white to-blue-50/40',text:'text-slate-900',card:'bg-white border-slate-200 shadow-md',accent:'text-blue-600',danger:'text-red-500',chartGrid:'#cbd5e1',
   };
 
   const scrollbarStyles=`
     .custom-scrollbar::-webkit-scrollbar{width:4px;height:4px;}
     .custom-scrollbar::-webkit-scrollbar-track{background:transparent;}
-    .custom-scrollbar::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,0.15);border-radius:20px;}
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover{background-color:rgba(255,255,255,0.28);}
+    .custom-scrollbar::-webkit-scrollbar-thumb{background-color:${darkMode?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.14)'};border-radius:20px;}
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover{background-color:${darkMode?'rgba(255,255,255,0.28)':'rgba(0,0,0,0.26)'};}
     .custom-scrollbar::-webkit-scrollbar-corner{background:transparent;}
     input[type=range]{touch-action:none;}
     input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;}
+    ${!darkMode?`
+      .kpi-gradient-blue{background:linear-gradient(135deg,#eff6ff,#fff);}
+      .kpi-gradient-indigo{background:linear-gradient(135deg,#eef2ff,#fff);}
+      .kpi-gradient-violet{background:linear-gradient(135deg,#f5f3ff,#fff);}
+      .kpi-gradient-amber{background:linear-gradient(135deg,#fffbeb,#fff);}
+      .kpi-gradient-cyan{background:linear-gradient(135deg,#ecfeff,#fff);}
+      .kpi-gradient-emerald{background:linear-gradient(135deg,#ecfdf5,#fff);}
+      .kpi-gradient-rose{background:linear-gradient(135deg,#fff1f2,#fff);}
+    `:''}
   `;
 
   if (view === 'intro') return <ParticleIntro onStart={() => setView('dashboard')} />;
@@ -857,31 +934,44 @@ export default function FXApp() {
               {/* Variance row */}
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 {[
-                  {label:'YTD Variance',value:kpiData.ytdVariance},
-                  {label:'MTD Variance',value:kpiData.mtdVariance},
-                ].map(({label,value})=>(
-                  <div key={label} className={`p-3 rounded-xl border flex flex-col items-center text-center ${darkMode?'border-emerald-500/30 bg-emerald-900/10':'border-emerald-500/30 bg-emerald-50'}`}>
-                    <div className={`font-mono text-xs mb-1 uppercase font-bold ${darkMode?'text-emerald-400':'text-emerald-600'}`}>{label}</div>
-                    <div className={`text-xl sm:text-3xl font-black tracking-tight ${value>=0?(darkMode?theme.accent:'text-emerald-600'):theme.danger}`}>
+                  {label:'YTD Variance',value:kpiData.ytdVariance,tooltip:'YTD Actual in Budget Rate minus YTD Actual — represents the pure FX (rate) impact, isolating exchange rate gains/losses from volume changes.'},
+                  {label:'MTD Variance',value:kpiData.mtdVariance,tooltip:'Current month: Actual volumes × Budget rate minus Actual volumes × Actual rate — the month\'s FX impact only.'},
+                ].map(({label,value,tooltip})=>(
+                  <div key={label} className={`p-3 rounded-xl border flex flex-col items-center text-center relative ${darkMode?(value>=0?'border-emerald-500/30 bg-emerald-900/10':'border-rose-500/30 bg-rose-900/10'):(value>=0?'border-emerald-400 bg-emerald-50 kpi-gradient-emerald':'border-rose-400 bg-red-50 kpi-gradient-rose')}`}>
+                    <div className={`flex items-center gap-1 mb-1 font-mono text-xs uppercase font-bold ${darkMode?(value>=0?'text-emerald-400':'text-rose-400'):(value>=0?'text-emerald-700':'text-rose-700')}`}>
+                      {label}
+                      <div className="relative group/kpitip">
+                        <button className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center text-[8px] leading-none ml-0.5 ${darkMode?'border-white/20 text-white/30 hover:text-white/70':'border-current/40 text-current/50 hover:text-current'}`}>i</button>
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/kpitip:block w-52 bg-gray-900 text-white text-[9px] p-2.5 rounded-lg shadow-2xl z-50 pointer-events-none text-center leading-relaxed font-normal font-sans">{tooltip}</div>
+                      </div>
+                    </div>
+                    <div className={`text-xl sm:text-3xl font-black tracking-tight ${value>=0?(darkMode?'text-emerald-400':'text-emerald-600'):(darkMode?'text-rose-400':'text-rose-600')}`}>
                       {formatFinancial(value,displayUnit)}
                     </div>
                   </div>
                 ))}
               </div>
               {/* Metrics row */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
                 {[
-                  {label:'Annual Budget',value:kpiData.annualBudget},
-                  {label:'YTD Budget',value:kpiData.ytdBudget},
-                  {label:'YTD Actual',value:kpiData.ytdActual},
-                  {label:'Annual Forecast',value:kpiData.annualForecast,showDelta:true},
-                ].map(({label,value,showDelta})=>{
+                  {label:'Annual Budget',value:kpiData.annualBudget,lc:'border-blue-200 bg-blue-50 kpi-gradient-blue',tooltip:'Full-year planned spend: sum of all budget volumes × budget exchange rates for each currency.'},
+                  {label:'YTD Budget',value:kpiData.ytdBudget,lc:'border-indigo-200 bg-indigo-50 kpi-gradient-indigo',tooltip:'Cumulative budget spend through the selected YTD month: budget volumes × budget rates.'},
+                  {label:'YTD Act@Budget Rate',value:kpiData.ytdActualInBudgetRate,lc:'border-violet-200 bg-violet-50 kpi-gradient-violet',tooltip:'Actual/Forecast volumes × Budget exchange rates through YTD — removes FX impact, isolates volume variance from budget.'},
+                  {label:'YTD Actual',value:kpiData.ytdActual,lc:'border-amber-200 bg-amber-50 kpi-gradient-amber',tooltip:'Actual/Forecast volumes × Actual/Forecast exchange rates through the selected YTD month.'},
+                  {label:'Annual Forecast',value:kpiData.annualForecast,lc:'border-cyan-200 bg-cyan-50 kpi-gradient-cyan',showDelta:true,tooltip:'Full-year projection using Actual/Forecast volumes × Actual/Forecast rates for all 12 months.'},
+                ].map(({label,value,showDelta,lc,tooltip})=>{
                   const pct = showDelta&&kpiData.annualBudget ? (kpiData.annualForecast-kpiData.annualBudget)/kpiData.annualBudget*100 : null;
                   const isSaving = pct!==null&&pct<=0;
                   return(
-                    <div key={label} className={`p-3 rounded-xl border flex flex-col items-center text-center ${theme.card}`}>
-                      <div className="font-mono text-xs mb-1 uppercase opacity-50">{label}</div>
-                      <div className="text-xl sm:text-2xl font-black tracking-tight">
+                    <div key={label} className={`p-3 rounded-xl border flex flex-col items-center text-center ${darkMode?theme.card:lc}`}>
+                      <div className={`flex items-center gap-1 justify-center mb-1 font-mono text-[10px] uppercase ${darkMode?'opacity-50':'text-slate-500 font-semibold'}`}>
+                        <span>{label}</span>
+                        <div className="relative group/kpitip2">
+                          <button className={`w-3 h-3 rounded-full border flex items-center justify-center text-[7px] leading-none shrink-0 ${darkMode?'border-white/20 text-white/30 hover:text-white/70':'border-slate-300 text-slate-400 hover:text-slate-600'}`}>i</button>
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/kpitip2:block w-52 bg-gray-900 text-white text-[9px] p-2.5 rounded-lg shadow-2xl z-50 pointer-events-none text-center leading-relaxed font-normal font-sans">{tooltip}</div>
+                        </div>
+                      </div>
+                      <div className={`text-lg sm:text-2xl font-black tracking-tight ${darkMode?'text-white':'text-slate-800'}`}>
                         {formatFinancial(value,displayUnit)}
                       </div>
                       {pct!==null&&(
@@ -941,7 +1031,7 @@ export default function FXApp() {
                 <BarChart layout="vertical" data={expenseChartData} margin={{left:8,right:55,top:0,bottom:15}} barSize={22}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.chartGrid} opacity={0.2}/>
                   <XAxis type="number" tick={{fontSize:10,fill:'#64748b'}} axisLine={false} tickLine={false} tickFormatter={v=>formatFinancial(v,displayUnit)}/>
-                  <YAxis type="category" dataKey="code" tick={({x,y,payload})=>(<g transform={`translate(${x},${y})`}><text x={-24} y={3} textAnchor="end" fill="#64748b" fontSize={10} fontWeight="bold">{payload.value}</text>{CURRENCY_TO_COUNTRY[payload.value]&&<image x={-19} y={-8} width="13" height="9" href={`https://flagcdn.com/w40/${CURRENCY_TO_COUNTRY[payload.value]}.png`}/>}</g>)} width={52} axisLine={false} tickLine={false}/>
+                  <YAxis type="category" dataKey="code" tick={({x,y,payload})=>{const cc=CURRENCY_TO_COUNTRY[payload.value];return(<g transform={`translate(${x},${y})`}><text x={-24} y={4} textAnchor="end" fill="#64748b" fontSize={10} fontWeight="bold">{payload.value}</text>{cc&&<foreignObject x={-39} y={-6} width="16" height="11" overflow="visible"><img src={`https://flagcdn.com/w40/${cc}.png`} width="14" height="10" alt="" style={{display:'block',borderRadius:'1px'}}/></foreignObject>}</g>);}} width={52} axisLine={false} tickLine={false}/>
                   <Bar dataKey="value" radius={[0,4,4,0]}>
                     {expenseChartData.map((entry,i)=><Cell key={i} fill={entry.isRef?'#52525b':getCurrencyColor(entry.code,i)}/>)}
                     <LabelList dataKey="value" position="right" formatter={v=>formatFinancial(v,displayUnit)} style={{fontSize:10,fill:darkMode?'#fff':'#000',fontFamily:'monospace'}}/>
@@ -994,7 +1084,7 @@ export default function FXApp() {
                 </div>
               </div>
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={accVarianceData} stackOffset="sign" margin={{top:20,right:0,left:0,bottom:22}}>
+                <ComposedChart data={accVarianceData} stackOffset="sign" margin={{top:36,right:0,left:0,bottom:22}}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.chartGrid} opacity={0.2}/>
                   <XAxis dataKey="name" tick={{fontSize:10,fill:'#64748b'}} axisLine={false} tickLine={false}/>
                   <YAxis tick={{fontSize:10,fill:'#64748b'}} axisLine={false} tickLine={false} tickFormatter={v=>formatFinancial(v,displayUnit)}/>
@@ -1008,7 +1098,8 @@ export default function FXApp() {
                       </Bar>
                     );
                   })}
-                  <Line type="monotone" dataKey="total" stroke="none" isAnimationActive={false}>
+                  {/* Invisible line anchored at top of positive stack — labels float above all bars */}
+                  <Line type="monotone" dataKey="positiveTop" stroke="none" isAnimationActive={false} dot={false} legendType="none">
                     <LabelList dataKey="total" position="top" content={props=><CustomTotalLabel {...props} displayUnit={displayUnit} darkMode={darkMode}/>}/>
                   </Line>
                 </ComposedChart>
