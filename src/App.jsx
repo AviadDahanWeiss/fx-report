@@ -567,13 +567,121 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
 // ─── INTRO SCREEN ─────────────────────────────────────────────────────────────
 
 const ParticleIntro = ({ onStart }) => {
+  const canvasRef = useRef(null);
   const [isReady, setIsReady] = useState(false);
-  useEffect(() => { setTimeout(() => setIsReady(true), 400); }, []);
+  const animIdRef = useRef(null);
+  const readyRef = useRef(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const ROWS = 10;
+    const PER_ROW = 55;
+    const build = () => {
+      const W = canvas.width, H = canvas.height;
+      const rowSpacing = H / (ROWS + 1);
+      const colSpacing = W / (PER_ROW + 1);
+      const particles = [];
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < PER_ROW; c++) {
+          const isEmerald = Math.random() < 0.07;
+          particles.push({
+            id: r * PER_ROW + c,
+            x: -colSpacing * (c * 0.25) - Math.random() * W * 0.4,
+            y: rowSpacing * (r + 1) + (Math.random() - 0.5) * rowSpacing * 0.4,
+            vx: 2.5 + Math.random() * 3.5,
+            vy: (Math.random() - 0.5) * 1.2,
+            tx: colSpacing * (c + 1) + (r % 2 ? colSpacing * 0.5 : 0),
+            ty: rowSpacing * (r + 1),
+            settled: false,
+            size: 0.9 + Math.random() * 1.1,
+            alpha: 0.55 + Math.random() * 0.45,
+            phase: Math.random() * Math.PI * 2,
+            row: r,
+            col: c,
+            color: isEmerald ? [52,211,153] : [210,228,255],
+          });
+        }
+      }
+      return particles;
+    };
+
+    let particles = build();
+    let frame = 0;
+    const SETTLE_START = 70;
+
+    const draw = () => {
+      frame++;
+      const W = canvas.width, H = canvas.height;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.17)';
+      ctx.fillRect(0, 0, W, H);
+
+      // Faint horizontal grid lines (like the blue deposition grid on the reference site)
+      for (let r = 0; r < ROWS; r++) {
+        const ly = H / (ROWS + 1) * (r + 1);
+        ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(W, ly);
+        ctx.strokeStyle = `rgba(60,140,220,${0.03 + Math.sin(frame * 0.008 + r * 0.7) * 0.015})`;
+        ctx.lineWidth = 0.5; ctx.stroke();
+      }
+
+      let settled = 0;
+      particles.forEach(p => {
+        const [cr,cg,cb] = p.color;
+        if (p.settled) {
+          settled++;
+          const s = p.alpha * (0.65 + Math.sin(frame * 0.022 + p.phase) * 0.3);
+          ctx.beginPath(); ctx.arc(p.tx, p.ty, p.size + 0.25, 0, Math.PI*2);
+          ctx.fillStyle = `rgba(${cr},${cg},${cb},${s})`; ctx.fill();
+          return;
+        }
+        // Row-staggered homing: later rows settle later; right cols settle later
+        const settleAt = SETTLE_START + p.row * 12 + (p.col / PER_ROW) * 25;
+        if (frame >= settleAt) {
+          const dx = p.tx - p.x, dy = p.ty - p.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < 1.5) { p.settled = true; }
+          else {
+            const f = Math.min(0.06, 0.03 + (frame - settleAt) * 0.0003);
+            p.vx += dx * f; p.vy += dy * f;
+            p.vx *= 0.87; p.vy *= 0.87;
+            p.x += p.vx; p.y += p.vy;
+          }
+        } else {
+          p.x += p.vx; p.y += p.vy * 0.97; p.vy *= 0.995;
+        }
+        const fadeIn = p.x < 0 ? 0 : Math.min(1, p.x / 80);
+        if (fadeIn > 0) {
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+          ctx.fillStyle = `rgba(${cr},${cg},${cb},${p.alpha * fadeIn * 0.75})`; ctx.fill();
+        }
+      });
+
+      if (!readyRef.current && settled > particles.length * 0.78) {
+        readyRef.current = true;
+        setIsReady(true);
+      }
+      animIdRef.current = requestAnimationFrame(draw);
+    };
+
+    animIdRef.current = requestAnimationFrame(draw);
+    return () => { cancelAnimationFrame(animIdRef.current); window.removeEventListener('resize', resize); };
+  }, []);
+
   return (
-    <div className="fixed inset-0 bg-black flex items-center justify-center z-40">
-      <div className={`text-center transition-opacity duration-1000 ${isReady?'opacity-100':'opacity-0'}`}>
-        <p className="text-white/40 font-mono text-[10px] tracking-[0.4em] uppercase mb-8">System Initialized</p>
-        <button onClick={onStart} className="px-12 py-4 bg-transparent border border-white/20 text-white font-bold tracking-[0.25em] text-xs hover:bg-white hover:text-black transition-all duration-300 uppercase">
+    <div className="fixed inset-0 bg-black z-40 overflow-hidden">
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full"/>
+      <div className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1000 ${isReady?'opacity-100':'opacity-0'}`}
+           style={{pointerEvents: isReady?'auto':'none'}}>
+        <p className="text-white/30 font-mono text-[9px] tracking-[0.5em] uppercase mb-10">System Initialized</p>
+        <button onClick={onStart}
+          className="px-12 py-4 bg-transparent border border-white/25 text-white font-bold tracking-[0.3em] text-xs hover:bg-white hover:text-black transition-all duration-300 uppercase">
           Enter Dashboard
         </button>
       </div>
@@ -1120,11 +1228,11 @@ export default function FXApp() {
                 </div>
               </div>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart layout="vertical" data={expenseChartData} margin={{left:8,right:55,top:0,bottom:15}} barSize={22}>
+                <BarChart key={expenseChartData.map(d=>d.code).join(',')} layout="vertical" data={expenseChartData} margin={{left:8,right:55,top:0,bottom:15}} barSize={22} isAnimationActive={false}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.chartGrid} opacity={0.2}/>
                   <XAxis type="number" tick={{fontSize:10,fill:darkMode?'#64748b':'#374151'}} axisLine={false} tickLine={false} tickFormatter={v=>formatFinancial(v,displayUnit)}/>
                   <YAxis type="category" dataKey="code" tick={({x,y,payload})=>{const cc=CURRENCY_TO_COUNTRY[payload.value];const tickFill=darkMode?'#94a3b8':'#374151';return(<g key={payload.value} transform={`translate(${x},${y})`}>{cc&&<foreignObject key={`flag-${payload.value}`} x={-50} y={-5} width={14} height={10} overflow="visible"><img src={`https://flagcdn.com/w40/${cc}.png`} width="14" height="10" alt="" style={{display:'block',borderRadius:'1px'}}/></foreignObject>}<text x={cc?-33:-5} y={4} textAnchor="start" fill={tickFill} fontSize={10} fontWeight="bold">{payload.value}</text></g>);}} width={58} axisLine={false} tickLine={false}/>
-                  <Bar dataKey="value" radius={[0,4,4,0]}>
+                  <Bar dataKey="value" radius={[0,4,4,0]} isAnimationActive={false}>
                     {expenseChartData.map((entry,i)=><Cell key={i} fill={entry.isRef?'#52525b':getCurrencyColor(entry.code,i)}/>)}
                     <LabelList dataKey="value" position="right" formatter={v=>formatFinancial(v,displayUnit)} style={{fontSize:10,fill:darkMode?'#fff':'#000',fontFamily:'monospace'}}/>
                   </Bar>
@@ -1186,7 +1294,7 @@ export default function FXApp() {
                     if(accVisibleCurrencies.length>0&&!accVisibleCurrencies.includes(curr.code))return null;
                     return(
                       <Bar key={curr.code} dataKey={curr.code} stackId="stack" fill={getCurrencyColor(curr.code,idx)} barSize={26}>
-                        <LabelList dataKey={curr.code} position="inside" formatter={v=>Math.abs(v)>0?formatFinancial(v,displayUnit):''} style={{fill:'white',fontWeight:'bold',fontFamily:'monospace',fontSize:'9px',pointerEvents:'none'}}/>
+                        <LabelList dataKey={curr.code} position="inside" formatter={v=>Math.abs(v)>0?formatFinancial(v,displayUnit):''} style={{fill:darkMode?'white':'#1e293b',fontWeight:'bold',fontFamily:'monospace',fontSize:'9px',pointerEvents:'none'}}/>
                       </Bar>
                     );
                   })}
