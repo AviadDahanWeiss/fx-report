@@ -7,7 +7,8 @@ import {
   Activity, DollarSign, Calendar, Layers, ArrowLeftRight, PieChart, BarChart2,
   Download, Upload, FileSpreadsheet, RefreshCw, Table, Zap,
   PanelLeftClose, PanelLeftOpen, Menu, Sun, Moon, Plus, Trash2,
-  LayoutDashboard, PlusSquare, MinusSquare, Info, Copy
+  LayoutDashboard, PlusSquare, MinusSquare, Info, Copy,
+  ChevronDown, ChevronRight
 } from 'lucide-react';
 
 import { ISO_CURRENCIES, CURRENCY_TO_COUNTRY, getCurrencyColor, DEFAULT_PORTFOLIO } from './constants/currencies';
@@ -102,7 +103,8 @@ const CurrencyRateCard = ({ data, onChange, onRemove, theme, darkMode, onToggleD
   }, [data]);
   const effectiveActualRate = useMemo(() =>
     data.monthlyActualRates.reduce((a, b) => a + b, 0) / 12, [data]);
-  const totalVolume = data.monthlyVolumes.reduce((a, b) => a + b, 0);
+  const budgetVolume = data.monthlyVolumes.reduce((a, b) => a + b, 0);
+  const planVolume = (data.monthlyActualVolumes ?? data.monthlyVolumes).reduce((a, b) => a + b, 0);
   const isBaseCurrency = data.code === 'USD';
   const isLocalPerUsd = data.rateDirection === 'LOCAL_PER_USD';
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -133,22 +135,26 @@ const CurrencyRateCard = ({ data, onChange, onRemove, theme, darkMode, onToggleD
           </button>
         )}
       </div>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <div className="flex justify-between items-center">
-          <div className="font-mono text-xs opacity-50 uppercase">Plan Vol</div>
-          <div className={`text-sm font-mono font-bold ${darkMode ? 'text-white/90' : 'text-gray-800'}`}>{formatCompact(totalVolume)}</div>
+          <div className="font-mono text-[10px] opacity-50 uppercase">Budget Vol</div>
+          <div className={`text-xs font-mono font-bold ${darkMode ? 'text-white/70' : 'text-gray-600'}`}>{formatCompact(budgetVolume)}</div>
+        </div>
+        <div className={`flex justify-between items-center pb-1 border-b ${darkMode ? 'border-white/5' : 'border-gray-100'}`}>
+          <div className="font-mono text-[10px] opacity-50 uppercase">Plan Vol</div>
+          <div className={`text-xs font-mono font-bold ${darkMode ? 'text-white/90' : 'text-gray-800'}`}>{formatCompact(planVolume)}</div>
         </div>
         {!isBaseCurrency && (
           <>
             <div className="flex justify-between items-center">
-              <div className="font-mono text-xs opacity-50 uppercase flex items-center gap-1">
+              <div className="font-mono text-[10px] opacity-50 uppercase flex items-center gap-1">
                 Budget <span className={`text-[8px] ${flashState ? 'text-emerald-400 font-bold' : ''}`}>{isLocalPerUsd ? `(${data.code}/USD)` : `(USD/${data.code})`}</span>
               </div>
-              <div className="text-sm font-bold text-[#60a5fa]">{effectiveRate.toFixed(4)}</div>
+              <div className="text-xs font-bold text-[#60a5fa]">{effectiveRate.toFixed(4)}</div>
             </div>
-            <div className={`flex justify-between items-center pt-1 border-t ${darkMode ? 'border-white/5' : 'border-gray-200'}`}>
-              <div className="font-mono text-xs opacity-50 uppercase">Act/Fcst (Avg)</div>
-              <div className="text-sm font-mono text-amber-500 font-bold">{effectiveActualRate.toFixed(4)}</div>
+            <div className={`flex justify-between items-center pt-1 border-t ${darkMode ? 'border-white/5' : 'border-gray-100'}`}>
+              <div className="font-mono text-[10px] opacity-50 uppercase">Act/Fcst</div>
+              <div className="text-xs font-mono text-amber-500 font-bold">{effectiveActualRate.toFixed(4)}</div>
             </div>
           </>
         )}
@@ -593,6 +599,8 @@ export default function FXApp() {
   const [shouldScrollToRates, setShouldScrollToRates] = useState(false);
   const [scenarioDeltas, setScenarioDeltas] = useLocalStorage('fx_scenario', {});
   const [scenarioActive, setScenarioActive] = useState(false);
+  const [exRatePlanOpen, setExRatePlanOpen] = useState(false);
+  const [scenarioPanelOpen, setScenarioPanelOpen] = useState(false);
   const [portfolio, setPortfolio] = useLocalStorage('fx_portfolio_v1', DEFAULT_PORTFOLIO);
 
   const fileInputRefMain = useRef(null);
@@ -799,10 +807,16 @@ export default function FXApp() {
     try{const{exportToExcel}=await import('./utils/exportHelpers');await exportToExcel(portfolio);notify.dismiss(id);notify.success('Excel downloaded');}
     catch(err){notify.dismiss(id);notify.error(`Excel failed: ${err.message}`);}
   };
-  const handlePdfExport = async () => {
+  const handlePdfExport = async (includeRatePlan = true) => {
     const id=notify.loading('Generating PDF...');
-    try{const{exportToPdf}=await import('./utils/exportHelpers');await exportToPdf();notify.dismiss(id);notify.success('PDF downloaded');}
-    catch(err){notify.dismiss(id);notify.error(`PDF failed: ${err.message}`);}
+    const wasSidebarOpen = isLeftPanelOpen;
+    try {
+      if (!includeRatePlan && wasSidebarOpen) { setIsLeftPanelOpen(false); await new Promise(r=>setTimeout(r,350)); }
+      const{exportToPdf}=await import('./utils/exportHelpers');
+      await exportToPdf();
+      notify.dismiss(id);notify.success('PDF downloaded');
+    } catch(err){notify.dismiss(id);notify.error(`PDF failed: ${err.message}`);}
+    finally { if (!includeRatePlan && wasSidebarOpen) setIsLeftPanelOpen(true); }
   };
 
   // ── Theme ──
@@ -844,8 +858,6 @@ export default function FXApp() {
       <div className={`sticky top-0 z-20 flex lg:hidden items-center justify-between px-4 py-3 border-b ${darkMode?'bg-black/90 border-white/10':'bg-white/90 border-black/10'} backdrop-blur`}>
         <h1 className="font-mono text-xs font-bold tracking-widest opacity-60">FX DASHBOARD</h1>
         <div className="flex items-center gap-1">
-          <button onClick={handleExcelExport} className="p-2 rounded hover:bg-white/10 opacity-60 hover:opacity-100" title="Excel"><FileSpreadsheet size={16}/></button>
-          <button onClick={handlePdfExport} className="p-2 rounded hover:bg-white/10 opacity-60 hover:opacity-100" title="PDF"><Download size={16}/></button>
           <button onClick={()=>setDarkMode(!darkMode)} className="p-2 rounded hover:bg-white/10">{darkMode?<Sun size={16}/>:<Moon size={16}/>}</button>
           <button onClick={()=>setIsLeftPanelOpen(!isLeftPanelOpen)} className="p-2 rounded hover:bg-white/10"><Menu size={18}/></button>
         </div>
@@ -876,40 +888,92 @@ export default function FXApp() {
         {/* MAIN GRID */}
         <div className="grid grid-cols-12 gap-3 sm:gap-6">
 
-          {/* LEFT SIDEBAR */}
+          {/* LEFT SIDEBAR — organized menu */}
           {isLeftPanelOpen&&(
-            <div className="col-span-12 lg:col-span-3 flex flex-col gap-3">
-              <div className="flex flex-col gap-2">
-                <div className="flex gap-2">
-                  <button onClick={()=>setIsLeftPanelOpen(false)} className={`w-12 h-10 flex items-center justify-center rounded-lg border cursor-pointer transition-colors ${darkMode?'border-white/20 bg-white/5 hover:bg-white/10':'border-black/10 bg-black/5'} ${highlightClose?'btn-shine btn-pulse-ring':''}`} title="Close"><PanelLeftClose size={17} className="opacity-70"/></button>
-                  <button onClick={()=>setDarkMode(!darkMode)} className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-all ${darkMode?'border-white/20 hover:bg-white/10 bg-white/5':'border-black/10 hover:bg-black/5 bg-gray-100'}`}>{darkMode?<Sun size={15}/>:<Moon size={15}/>}</button>
-                  <div className="flex-grow">
-                    <input type="file" ref={fileInputRefMain} style={{display:'none'}} onChange={handleImportFileMain} accept=".csv"/>
-                    <button onClick={()=>fileInputRefMain.current.click()} className={`w-full flex items-center justify-center gap-2 h-10 rounded-lg text-xs font-mono border ${darkMode ? 'bg-white/5 hover:bg-white/10 border-white/20 text-white' : 'bg-black/5 hover:bg-black/10 border-black/15 text-gray-700'}`}><Upload size={13}/> IMPORT</button>
-                  </div>
-                </div>
-                <button onClick={()=>setIsVolumeModalOpen(true)} className={`w-full py-2.5 rounded-lg border ${darkMode?'border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400':'border-blue-500/50 bg-blue-50 text-blue-600'} font-bold font-mono tracking-widest text-[10px] flex items-center justify-center gap-2`}>
+            <div className="col-span-12 lg:col-span-3 flex flex-col gap-0">
+              {/* ── Menu header ── */}
+              <div className={`flex items-center justify-between px-3 py-2 mb-2 border-b ${darkMode?'border-white/10':'border-black/10'}`}>
+                <span className="font-mono text-[10px] font-bold tracking-widest opacity-40 uppercase">Menu</span>
+                <button onClick={()=>setIsLeftPanelOpen(false)} className={`p-1.5 rounded-lg border transition-colors ${darkMode?'border-white/20 bg-white/5 hover:bg-white/10':'border-black/10 bg-black/5 hover:bg-black/10'} ${highlightClose?'btn-shine btn-pulse-ring':''}`} title="Close">
+                  <PanelLeftClose size={15} className="opacity-70"/>
+                </button>
+              </div>
+
+              {/* ── 1. Plan Volumes & Rates ── */}
+              <div className="px-2 pb-1">
+                <button onClick={()=>setIsVolumeModalOpen(true)} className={`w-full py-2.5 rounded-lg border ${darkMode?'border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400':'border-blue-500/50 bg-blue-50 hover:bg-blue-100 text-blue-600'} font-bold font-mono tracking-widest text-[10px] flex items-center justify-center gap-2`}>
                   <LayoutDashboard size={13}/> PLAN VOLUMES & RATES
                 </button>
-                <div className={`grid grid-cols-3 gap-1 p-1 rounded-lg border ${darkMode?'bg-white/5 border-white/10':'bg-black/5 border-black/10'}`}>
-                  {[1,1000,1000000].map(u=>(
-                    <button key={u} onClick={()=>setDisplayUnit(u)} className={`py-1 rounded font-black text-sm tracking-tight transition-colors ${displayUnit===u?(darkMode?'bg-white text-black':'bg-black text-white'):'opacity-50 hover:opacity-100'}`}>
-                      {u===1?'$':u===1000?'$k':'$M'}
-                    </button>
-                  ))}
+                <div className="mt-1">
+                  <input type="file" ref={fileInputRefMain} style={{display:'none'}} onChange={handleImportFileMain} accept=".csv"/>
+                  <button onClick={()=>fileInputRefMain.current.click()} className={`w-full flex items-center justify-center gap-2 h-8 rounded-lg text-[10px] font-mono border ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/60':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-500'}`}>
+                    <Upload size={11}/> IMPORT CSV
+                  </button>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={handleExcelExport} className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-[10px] font-mono border ${darkMode ? 'bg-white/5 hover:bg-white/10 border-white/20 text-white' : 'bg-black/5 hover:bg-black/10 border-black/15 text-gray-700'}`}><FileSpreadsheet size={12}/> XLSX</button>
-                  <button onClick={handlePdfExport} className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-[10px] font-mono border ${darkMode ? 'bg-white/5 hover:bg-white/10 border-white/20 text-white' : 'bg-black/5 hover:bg-black/10 border-black/15 text-gray-700'}`}><Download size={12}/> PDF</button>
+              </div>
+
+              {/* ── 2. Display ── */}
+              <div className={`mx-2 mt-3 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
+                <div className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase mb-2 px-1">Display</div>
+                {/* Theme row */}
+                <div className="flex items-center justify-between px-1 mb-2">
+                  <span className={`text-[11px] font-mono ${darkMode?'text-white/60':'text-gray-500'}`}>Theme</span>
+                  <button onClick={()=>setDarkMode(!darkMode)} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-mono transition-colors ${darkMode?'border-white/20 bg-white/5 hover:bg-white/10 text-white/80':'border-black/10 bg-black/5 hover:bg-black/10 text-gray-700'}`}>
+                    {darkMode?<><Sun size={11}/> Light</>:<><Moon size={11}/> Dark</>}
+                  </button>
                 </div>
-                <h3 className="font-mono text-xs font-bold tracking-widest opacity-50 px-1 mt-1">EX RATE PLAN</h3>
+                {/* Currency unit row */}
+                <div className="flex items-center justify-between px-1">
+                  <span className={`text-[11px] font-mono ${darkMode?'text-white/60':'text-gray-500'}`}>Currency</span>
+                  <div className={`flex gap-0.5 p-0.5 rounded-lg border ${darkMode?'bg-white/5 border-white/10':'bg-black/5 border-black/10'}`}>
+                    {[{v:1,l:'$'},{v:1000,l:'$k'},{v:1000000,l:'$M'}].map(({v,l})=>(
+                      <button key={v} onClick={()=>setDisplayUnit(v)} className={`px-2.5 py-0.5 rounded font-black text-[11px] tracking-tight transition-colors ${displayUnit===v?(darkMode?'bg-white text-black':'bg-black text-white'):'opacity-40 hover:opacity-80'}`}>{l}</button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div className="space-y-3">
-                {portfolio.map(currency=>(
-                  <CurrencyRateCard key={currency.id} data={currency} onChange={updateCurrency} onRemove={removeCurrency} onToggleDirection={handleCardToggleDirection} flashState={flashStates[currency.id]} theme={theme} darkMode={darkMode}/>
-                ))}
+
+              {/* ── 3. Download ── */}
+              <div className={`mx-2 mt-3 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
+                <div className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase mb-2 px-1">Download</div>
+                <div className="flex flex-col gap-1">
+                  <button onClick={handleExcelExport} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
+                    <FileSpreadsheet size={12}/> XLSX
+                  </button>
+                  <button onClick={()=>handlePdfExport(true)} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
+                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">with Ex Rate</span>
+                  </button>
+                  <button onClick={()=>handlePdfExport(false)} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
+                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">without Ex Rate</span>
+                  </button>
+                </div>
               </div>
-              <ScenarioPanel portfolio={portfolio} deltas={scenarioDeltas} onDeltaChange={(code,val)=>setScenarioDeltas(prev=>({...prev,[code]:val}))} active={scenarioActive} onToggle={()=>setScenarioActive(!scenarioActive)} baseKpi={baseKpiData||kpiData} simKpi={kpiData} displayUnit={displayUnit} darkMode={darkMode}/>
+
+              {/* ── 4. Ex Rate Plan (collapsible) ── */}
+              <div className={`mx-2 mt-3 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
+                <button onClick={()=>setExRatePlanOpen(v=>!v)} className="w-full flex items-center justify-between px-1 mb-2 group">
+                  <span className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase group-hover:opacity-60 transition-opacity">Ex Rate Plan</span>
+                  {exRatePlanOpen ? <ChevronDown size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/> : <ChevronRight size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/>}
+                </button>
+                {exRatePlanOpen && (
+                  <div className="space-y-2 mt-1">
+                    {portfolio.map(currency=>(
+                      <CurrencyRateCard key={currency.id} data={currency} onChange={updateCurrency} onRemove={removeCurrency} onToggleDirection={handleCardToggleDirection} flashState={flashStates[currency.id]} theme={theme} darkMode={darkMode}/>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* ── 5. What-If Scenario (collapsible) ── */}
+              <div className="mx-2 mt-3 mb-1">
+                <button onClick={()=>setScenarioPanelOpen(v=>!v)} className="w-full flex items-center justify-between px-1 mb-2 group">
+                  <span className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase group-hover:opacity-60 transition-opacity">What-If Scenario</span>
+                  {scenarioPanelOpen ? <ChevronDown size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/> : <ChevronRight size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/>}
+                </button>
+                {scenarioPanelOpen && (
+                  <ScenarioPanel portfolio={portfolio} deltas={scenarioDeltas} onDeltaChange={(code,val)=>setScenarioDeltas(prev=>({...prev,[code]:val}))} active={scenarioActive} onToggle={()=>setScenarioActive(!scenarioActive)} baseKpi={baseKpiData||kpiData} simKpi={kpiData} displayUnit={displayUnit} darkMode={darkMode}/>
+                )}
+              </div>
             </div>
           )}
 
@@ -917,15 +981,10 @@ export default function FXApp() {
           <div className={`col-span-12 ${isLeftPanelOpen?'lg:col-span-5':'lg:col-span-8'} space-y-5 transition-all duration-500`}>
 
             {!isLeftPanelOpen&&(
-              <div className="hidden lg:flex justify-between items-center">
+              <div className="hidden lg:flex items-center">
                 <button onClick={()=>setIsLeftPanelOpen(true)} className={`flex items-center gap-2 text-xs font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-900/20 px-3 py-2 rounded-lg border border-emerald-500/30 ${highlightMenu?'btn-shine btn-pulse-ring':''}`}>
                   <PanelLeftOpen size={15}/> SHOW MENU
                 </button>
-                <div className="flex items-center gap-2">
-                  <button onClick={handleExcelExport} className={`flex items-center gap-1.5 text-xs font-mono px-3 py-2 rounded-lg border opacity-60 hover:opacity-100 ${darkMode?'bg-white/5 border-white/10 text-white':'bg-black/5 border-black/10 text-black'}`}><FileSpreadsheet size={13}/> XLSX</button>
-                  <button onClick={handlePdfExport} className={`flex items-center gap-1.5 text-xs font-mono px-3 py-2 rounded-lg border opacity-60 hover:opacity-100 ${darkMode?'bg-white/5 border-white/10 text-white':'bg-black/5 border-black/10 text-black'}`}><Download size={13}/> PDF</button>
-                  <button onClick={()=>setIsVolumeModalOpen(true)} className={`flex items-center gap-1.5 text-xs font-mono px-3 py-2 rounded-lg border opacity-60 hover:opacity-100 ${darkMode?'bg-white/5 border-white/10 text-white':'bg-black/5 border-black/10 text-black'}`}><LayoutDashboard size={13}/> PLANNER</button>
-                </div>
               </div>
             )}
 
