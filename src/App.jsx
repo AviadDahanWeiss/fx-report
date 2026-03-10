@@ -144,11 +144,11 @@ const CurrencyRateCard = ({ data, onChange, onRemove, theme, darkMode, onToggleD
               <div className="font-mono text-xs opacity-50 uppercase flex items-center gap-1">
                 Budget <span className={`text-[8px] ${flashState ? 'text-emerald-400 font-bold' : ''}`}>{isLocalPerUsd ? `(${data.code}/USD)` : `(USD/${data.code})`}</span>
               </div>
-              <div className={`text-sm font-bold ${theme.accent}`}>{effectiveRate.toFixed(4)}</div>
+              <div className="text-sm font-bold text-[#60a5fa]">{effectiveRate.toFixed(4)}</div>
             </div>
             <div className={`flex justify-between items-center pt-1 border-t ${darkMode ? 'border-white/5' : 'border-gray-200'}`}>
               <div className="font-mono text-xs opacity-50 uppercase">Act/Fcst (Avg)</div>
-              <div className="text-sm font-mono text-blue-400 font-bold">{effectiveActualRate.toFixed(4)}</div>
+              <div className="text-sm font-mono text-amber-500 font-bold">{effectiveActualRate.toFixed(4)}</div>
             </div>
           </>
         )}
@@ -289,93 +289,93 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
       <ConfirmModal isOpen={showFillConfirm} title="Fill Forecast Rates" message="This will overwrite all future forecast rates with the current Budget Rate for each currency." confirmLabel="FILL FORECAST" danger={false} onConfirm={()=>{onFillForecast();setShowFillConfirm(false);notify.success('Forecast filled from budget');}} onCancel={()=>setShowFillConfirm(false)}/>
       <ConfirmModal isOpen={showFetchConfirm} title="Apply Live Exchange Rates" message={`This will fetch today's live rates from the market and apply them as the Actual Rate for all months up to the current YTD month. Manually entered rates for those months will be overwritten.`} confirmLabel="APPLY LIVE RATES" danger={false} onConfirm={()=>{setShowFetchConfirm(false);handleFetchMarketData();}} onCancel={()=>setShowFetchConfirm(false)}/>
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-sm sm:p-4 lg:p-8">
-        <div className={`w-full sm:max-w-7xl h-[95vh] sm:h-[90vh] flex flex-col rounded-t-xl sm:rounded-xl shadow-2xl border overflow-hidden text-white ${darkMode ? `${theme.card} border-white/20` : 'bg-zinc-900 border-zinc-700'}`}>
+        <div className={`w-full sm:max-w-7xl h-[95vh] sm:h-[90vh] flex flex-col rounded-t-xl sm:rounded-xl shadow-2xl border overflow-hidden ${darkMode ? `${theme.card} border-white/20 text-white` : 'bg-white border-gray-200 text-gray-800'}`}>
 
           {/* Header */}
-          <div className="p-4 sm:p-6 border-b border-white/10 flex flex-wrap gap-3 justify-between items-center bg-black/40 flex-shrink-0">
+          <div className={`p-4 sm:p-6 border-b flex flex-wrap gap-3 justify-between items-center flex-shrink-0 ${darkMode?'border-white/10 bg-black/40':'border-gray-200 bg-gray-50'}`}>
             <div className="flex items-center gap-3 flex-wrap">
               <Layers size={20} className={theme.accent}/>
-              <h2 className="text-base sm:text-2xl font-bold font-mono tracking-tight text-white">INTEGRATED PLANNER</h2>
-              <div className="flex bg-white/5 rounded-lg border border-white/10">
-                <button onClick={setViewAnnual} className={`px-3 py-1 text-xs font-mono border-r border-white/10 ${!expandedYear?'bg-white text-black font-bold':'text-white/60 hover:text-white'}`}>ANN</button>
-                <button onClick={setViewQuarterly} className={`px-3 py-1 text-xs font-mono border-r border-white/10 ${(expandedYear&&!expandedQuarters[0])?'bg-white text-black font-bold':'text-white/60 hover:text-white'}`}>QTR</button>
-                <button onClick={setViewMonthly} className={`px-3 py-1 text-xs font-mono ${(expandedYear&&expandedQuarters[0])?'bg-white text-black font-bold':'text-white/60 hover:text-white'}`}>MTH</button>
+              <h2 className="text-base sm:text-2xl font-bold font-mono tracking-tight">INTEGRATED PLANNER</h2>
+              <div className={`flex rounded-lg border ${darkMode?'bg-white/5 border-white/10':'bg-gray-100 border-gray-200'}`}>
+                <button onClick={setViewAnnual} className={`px-3 py-1 text-xs font-mono border-r ${darkMode?'border-white/10':'border-gray-200'} ${!expandedYear?'bg-white text-black font-bold':(darkMode?'text-white/60 hover:text-white':'text-gray-500 hover:text-gray-900')}`}>ANN</button>
+                <button onClick={setViewQuarterly} className={`px-3 py-1 text-xs font-mono border-r ${darkMode?'border-white/10':'border-gray-200'} ${(expandedYear&&!expandedQuarters[0])?'bg-white text-black font-bold':(darkMode?'text-white/60 hover:text-white':'text-gray-500 hover:text-gray-900')}`}>QTR</button>
+                <button onClick={setViewMonthly} className={`px-3 py-1 text-xs font-mono ${(expandedYear&&expandedQuarters[0])?'bg-white text-black font-bold':(darkMode?'text-white/60 hover:text-white':'text-gray-500 hover:text-gray-900')}`}>MTH</button>
               </div>
-              <div className="flex items-center bg-white/5 rounded px-2 border border-white/10">
-                <button onClick={()=>setPlanningYear(y=>y-1)} className="p-1.5 text-white hover:text-emerald-400">&lt;</button>
-                <span className="font-mono font-bold mx-2 text-white text-sm">{planningYear}</span>
-                <button onClick={()=>setPlanningYear(y=>y+1)} className="p-1.5 text-white hover:text-emerald-400">&gt;</button>
+              <div className={`flex items-center rounded px-2 border ${darkMode?'bg-white/5 border-white/10':'bg-gray-100 border-gray-200'}`}>
+                <button onClick={()=>setPlanningYear(y=>y-1)} className={`p-1.5 hover:text-emerald-400 ${darkMode?'text-white':'text-gray-600'}`}>&lt;</button>
+                <span className="font-mono font-bold mx-2 text-sm">{planningYear}</span>
+                <button onClick={()=>setPlanningYear(y=>y+1)} className={`p-1.5 hover:text-emerald-400 ${darkMode?'text-white':'text-gray-600'}`}>&gt;</button>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <input type="file" ref={fileInputRef} style={{display:'none'}} onChange={handleImportFile} accept=".csv"/>
-              <button onClick={handleDownloadTemplate} className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-xs font-mono border border-white/20 text-white"><FileSpreadsheet size={13}/><span className="hidden sm:inline">TEMPLATE</span></button>
-              <button onClick={()=>fileInputRef.current.click()} className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-xs font-mono border border-white/20 text-white"><Upload size={13}/><span className="hidden sm:inline">IMPORT</span></button>
-              <button onClick={handleExport} className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-xs font-mono border border-white/20 text-white"><Download size={13}/><span className="hidden sm:inline">EXPORT</span></button>
-              <div className="w-px h-5 bg-white/10"/>
+              <button onClick={handleDownloadTemplate} className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded text-xs font-mono border ${darkMode?'bg-white/5 hover:bg-white/10 border-white/20':'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700'}`}><FileSpreadsheet size={13}/><span className="hidden sm:inline">TEMPLATE</span></button>
+              <button onClick={()=>fileInputRef.current.click()} className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded text-xs font-mono border ${darkMode?'bg-white/5 hover:bg-white/10 border-white/20':'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700'}`}><Upload size={13}/><span className="hidden sm:inline">IMPORT</span></button>
+              <button onClick={handleExport} className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded text-xs font-mono border ${darkMode?'bg-white/5 hover:bg-white/10 border-white/20':'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700'}`}><Download size={13}/><span className="hidden sm:inline">EXPORT</span></button>
+              <div className={`w-px h-5 ${darkMode?'bg-white/10':'bg-gray-200'}`}/>
               <button onClick={onClose} className="px-3 sm:px-4 py-1.5 bg-white text-black font-bold text-xs rounded hover:bg-gray-200">CLOSE</button>
             </div>
           </div>
 
           {/* Scrollable body */}
-          <div className="flex-grow overflow-auto p-4 sm:p-6 custom-scrollbar bg-black/20">
+          <div className={`flex-grow overflow-auto p-4 sm:p-6 custom-scrollbar ${darkMode?'bg-black/20':''}`}>
 
             {/* VOLUME TABLE */}
             <div className="mb-12">
               <h3 className="font-mono text-sm font-bold text-emerald-400 mb-4 flex items-center gap-2"><Activity size={16}/> VOLUME PLAN (LOCAL CURRENCY)</h3>
               <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
                 <table className="w-full min-w-[480px] text-left border-collapse">
-                  <thead className="sticky top-0 bg-[#18181b] z-20">
-                    <tr className="border-b border-white/20">
-                      <th className="p-2 sm:p-3 font-mono text-xs opacity-70 w-36 sm:w-52 text-white">CURRENCY</th>
-                      <th className="p-2 sm:p-3 font-mono text-xs text-center border-l border-white/10 bg-white/5 text-white">
+                  <thead className={`sticky top-0 z-20 ${darkMode?'bg-[#18181b]':'bg-gray-100'}`}>
+                    <tr className={`border-b ${darkMode?'border-white/20':'border-gray-200'}`}>
+                      <th className="p-2 sm:p-3 font-mono text-xs opacity-70 w-36 sm:w-52">CURRENCY</th>
+                      <th className={`p-2 sm:p-3 font-mono text-xs text-center border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>
                         <div className="flex items-center justify-center gap-1.5">{planningYear} TOTAL <button onClick={()=>setExpandedYear(!expandedYear)} className="hover:text-emerald-400">{expandedYear?<MinusSquare size={13}/>:<PlusSquare size={13}/>}</button></div>
                       </th>
                       {expandedYear && quarters.map((q,qi)=>(
                         <React.Fragment key={q}>
                           {!expandedQuarters[qi] && (
-                            <th className="p-2 sm:p-3 font-mono text-xs text-center border-l border-white/10 bg-white/5 min-w-[88px] text-white">
+                            <th className={`p-2 sm:p-3 font-mono text-xs text-center border-l min-w-[88px] ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>
                               <div className="flex items-center justify-center gap-1">{q}<button onClick={()=>{const nq=[...expandedQuarters];nq[qi]=!nq[qi];setExpandedQuarters(nq);}} className="hover:text-emerald-400"><PlusSquare size={11}/></button></div>
                             </th>
                           )}
-                          {expandedQuarters[qi]&&[0,1,2].map(o=><th key={o} className="p-2 font-mono text-xs text-center border-l border-white/10 min-w-[68px] opacity-70 text-white">{months[qi*3+o].toUpperCase()}</th>)}
+                          {expandedQuarters[qi]&&[0,1,2].map(o=><th key={o} className={`p-2 font-mono text-xs text-center border-l min-w-[68px] opacity-70 ${darkMode?'border-white/10':'border-gray-200'}`}>{months[qi*3+o].toUpperCase()}</th>)}
                         </React.Fragment>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {portfolio.map(curr=>(
-                      <tr key={curr.id} className="border-b border-white/5 hover:bg-white/5">
-                        <td className="p-2 sm:p-3 font-bold font-mono text-white border-r border-white/10">
+                      <tr key={curr.id} className={`border-b ${darkMode?'border-white/5 hover:bg-white/5':'border-gray-100 hover:bg-gray-50'}`}>
+                        <td className={`p-2 sm:p-3 font-bold font-mono border-r ${darkMode?'border-white/10':'border-gray-200'}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
-                              <button onClick={()=>handleDeleteClick(curr.id)} disabled={curr.code==='USD'} className={`p-0.5 rounded ${isConfirmingDelete===curr.id?'bg-red-500 text-white':'text-white/20 hover:text-red-500 disabled:opacity-0'}`}><Trash2 size={11}/></button>
+                              <button onClick={()=>handleDeleteClick(curr.id)} disabled={curr.code==='USD'} className={`p-0.5 rounded ${isConfirmingDelete===curr.id?'bg-red-500 text-white':(darkMode?'text-white/20 hover:text-red-500 disabled:opacity-0':'text-gray-300 hover:text-red-500 disabled:opacity-0')}`}><Trash2 size={11}/></button>
                               <FlagIcon code={curr.code}/><span className="text-sm">{curr.code}</span>
                             </div>
                             <span className="text-xs opacity-30">VOL</span>
                           </div>
                         </td>
-                        <td className="p-2 border-l border-white/10 bg-white/5"><FormattedInput value={Math.round(getTotalVolume(curr.monthlyVolumes))} onChange={v=>handleVolumeYearUpdate(curr.id,v)} className="w-full bg-transparent text-center font-bold outline-none text-emerald-400 text-sm"/></td>
+                        <td className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}><FormattedInput value={Math.round(getTotalVolume(curr.monthlyVolumes))} onChange={v=>handleVolumeYearUpdate(curr.id,v)} className="w-full bg-transparent text-center font-bold outline-none text-emerald-400 text-sm"/></td>
                         {expandedYear&&quarters.map((q,qi)=>(
                           <React.Fragment key={q}>
-                            {!expandedQuarters[qi]&&<td className="p-2 border-l border-white/10 bg-white/5"><FormattedInput value={Math.round(getQuarterVolume(curr.monthlyVolumes,qi))} onChange={v=>handleVolumeQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-xs outline-none text-emerald-300/80"/></td>}
-                            {expandedQuarters[qi]&&[0,1,2].map(o=><td key={o} className="p-2 border-l border-white/10"><FormattedInput value={Math.round(curr.monthlyVolumes[qi*3+o])} onChange={v=>handleVolumeMonthUpdate(curr.id,qi*3+o,v)} className="w-full bg-transparent text-center font-mono text-xs text-white/50 outline-none"/></td>)}
+                            {!expandedQuarters[qi]&&<td className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}><FormattedInput value={Math.round(getQuarterVolume(curr.monthlyVolumes,qi))} onChange={v=>handleVolumeQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-xs outline-none text-emerald-300/80"/></td>}
+                            {expandedQuarters[qi]&&[0,1,2].map(o=><td key={o} className={`p-2 border-l ${darkMode?'border-white/10':'border-gray-200'}`}><FormattedInput value={Math.round(curr.monthlyVolumes[qi*3+o])} onChange={v=>handleVolumeMonthUpdate(curr.id,qi*3+o,v)} className={`w-full bg-transparent text-center font-mono text-xs outline-none ${darkMode?'text-white/50':'text-gray-400'}`}/></td>)}
                           </React.Fragment>
                         ))}
                       </tr>
                     ))}
                     <tr>
-                      <td className="p-3 border-r border-white/10">
+                      <td className={`p-3 border-r ${darkMode?'border-white/10':'border-gray-200'}`}>
                         <div className="flex items-center gap-2 pl-6">
                           <div className="relative">
-                            <input placeholder="ADD..." value={currencySearch} onChange={e=>{setCurrencySearch(e.target.value.toUpperCase());setShowCurrencyDropdown(true);}} onFocus={()=>setShowCurrencyDropdown(true)} onKeyDown={e=>{if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();handleAdd(null);}}} className="w-20 bg-white/10 p-1.5 rounded text-xs font-mono outline-none focus:ring-1 focus:ring-emerald-400 text-white placeholder-white/30" maxLength={3}/>
+                            <input placeholder="ADD..." value={currencySearch} onChange={e=>{setCurrencySearch(e.target.value.toUpperCase());setShowCurrencyDropdown(true);}} onFocus={()=>setShowCurrencyDropdown(true)} onKeyDown={e=>{if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();handleAdd(null);}}} className={`w-20 p-1.5 rounded text-xs font-mono outline-none focus:ring-1 focus:ring-emerald-400 ${darkMode?'bg-white/10 text-white placeholder-white/30':'bg-black/5 text-gray-800 placeholder-gray-400'}`} maxLength={3}/>
                             {showCurrencyDropdown&&currencySearch.length>0&&(
-                              <div className="absolute top-full left-0 mt-1 w-32 bg-[#18181b] border border-white/20 rounded shadow-xl max-h-40 overflow-y-auto z-50 custom-scrollbar">
-                                {filteredCurrencies.map(c=><button key={c} onClick={()=>handleAdd(c)} className="w-full text-left px-3 py-2 text-xs font-mono text-white hover:bg-emerald-500/20 hover:text-emerald-400">{c}</button>)}
+                              <div className={`absolute top-full left-0 mt-1 w-32 border rounded shadow-xl max-h-40 overflow-y-auto z-50 custom-scrollbar ${darkMode?'bg-[#18181b] border-white/20':'bg-white border-gray-200'}`}>
+                                {filteredCurrencies.map(c=><button key={c} onClick={()=>handleAdd(c)} className={`w-full text-left px-3 py-2 text-xs font-mono hover:bg-emerald-500/20 hover:text-emerald-400 ${darkMode?'text-white':'text-gray-700'}`}>{c}</button>)}
                               </div>
                             )}
                           </div>
-                          <button onClick={()=>handleAdd(null)} className="p-1 hover:text-emerald-400"><Plus size={15} className="text-white/30"/></button>
+                          <button onClick={()=>handleAdd(null)} className={`p-1 hover:text-emerald-400 ${darkMode?'text-white/30':'text-gray-300'}`}><Plus size={15}/></button>
                         </div>
                       </td><td colSpan={100}/>
                     </tr>
@@ -386,17 +386,17 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
 
             {/* BUDGET RATE TABLE */}
             <div>
-              <h3 className="font-mono text-sm font-bold text-blue-400 mb-4 flex items-center gap-2 border-t border-white/10 pt-8"><DollarSign size={16}/> BUDGET RATE PLAN</h3>
+              <h3 className={`font-mono text-sm font-bold text-blue-400 mb-4 flex items-center gap-2 border-t pt-8 ${darkMode?'border-white/10':'border-gray-200'}`}><DollarSign size={16}/> BUDGET RATE PLAN</h3>
               <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
                 <table className="w-full min-w-[480px] text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-white/20">
-                      <th className="p-2 sm:p-3 font-mono text-xs opacity-70 w-36 sm:w-52 text-white">CURRENCY / DIR</th>
-                      <th className="p-2 sm:p-3 font-mono text-xs text-center border-l border-white/10 bg-white/5 text-white">{planningYear} AVG</th>
+                    <tr className={`border-b ${darkMode?'border-white/20':'border-gray-200'}`}>
+                      <th className="p-2 sm:p-3 font-mono text-xs opacity-70 w-36 sm:w-52">CURRENCY / DIR</th>
+                      <th className={`p-2 sm:p-3 font-mono text-xs text-center border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>{planningYear} AVG</th>
                       {expandedYear&&quarters.map((q,qi)=>(
                         <React.Fragment key={q}>
-                          {!expandedQuarters[qi]&&<th className="p-2 sm:p-3 font-mono text-xs text-center border-l border-white/10 bg-white/5 min-w-[88px] text-white">{q} AVG</th>}
-                          {expandedQuarters[qi]&&[0,1,2].map(o=><th key={o} className="p-2 font-mono text-xs text-center border-l border-white/10 min-w-[68px] opacity-70 text-white">{months[qi*3+o].toUpperCase()}</th>)}
+                          {!expandedQuarters[qi]&&<th className={`p-2 sm:p-3 font-mono text-xs text-center border-l min-w-[88px] ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>{q} AVG</th>}
+                          {expandedQuarters[qi]&&[0,1,2].map(o=><th key={o} className={`p-2 font-mono text-xs text-center border-l min-w-[68px] opacity-70 ${darkMode?'border-white/10':'border-gray-200'}`}>{months[qi*3+o].toUpperCase()}</th>)}
                         </React.Fragment>
                       ))}
                     </tr>
@@ -405,18 +405,18 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                     {portfolio.map(curr=>{
                       if(curr.code==='USD') return null;
                       return(
-                        <tr key={curr.id} className="border-b border-white/5 hover:bg-white/5">
-                          <td className="p-2 sm:p-3 font-bold font-mono border-r border-white/10 text-white pl-8">
+                        <tr key={curr.id} className={`border-b ${darkMode?'border-white/5 hover:bg-white/5':'border-gray-100 hover:bg-gray-50'}`}>
+                          <td className={`p-2 sm:p-3 font-bold font-mono border-r pl-8 ${darkMode?'border-white/10':'border-gray-200'}`}>
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5"><FlagIcon code={curr.code}/> <span>{curr.code}</span><button onClick={()=>handleToggleDirection(curr.id)} className="p-0.5 rounded hover:bg-white/10 text-white/50 hover:text-white"><ArrowLeftRight size={11}/></button></div>
-                              <span className={`text-[9px] font-mono font-bold px-1 rounded transition-all duration-500 ${flashStates[curr.id]?'bg-emerald-400 text-black':'opacity-30 text-white'}`}>{curr.rateDirection==='LOCAL_PER_USD'?`(${curr.code}/USD)`:`(USD/${curr.code})`}</span>
+                              <div className="flex items-center gap-1.5"><FlagIcon code={curr.code}/> <span>{curr.code}</span><button onClick={()=>handleToggleDirection(curr.id)} className={`p-0.5 rounded ${darkMode?'hover:bg-white/10 text-white/50 hover:text-white':'hover:bg-black/5 text-gray-400 hover:text-gray-700'}`}><ArrowLeftRight size={11}/></button></div>
+                              <span className={`text-[9px] font-mono font-bold px-1 rounded transition-all duration-500 ${flashStates[curr.id]?'bg-emerald-400 text-black':(darkMode?'opacity-30 text-white':'opacity-40 text-gray-600')}`}>{curr.rateDirection==='LOCAL_PER_USD'?`(${curr.code}/USD)`:`(USD/${curr.code})`}</span>
                             </div>
                           </td>
-                          <td className="p-2 border-l border-white/10 bg-white/5"><DecimalInput value={curr.annualBudgetRate} onChange={v=>handleRateYearUpdate(curr.id,v)} className="w-full bg-transparent text-center font-bold outline-none text-blue-400"/></td>
+                          <td className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}><DecimalInput value={curr.annualBudgetRate} onChange={v=>handleRateYearUpdate(curr.id,v)} className="w-full bg-transparent text-center font-bold outline-none text-blue-400"/></td>
                           {expandedYear&&quarters.map((q,qi)=>(
                             <React.Fragment key={q}>
-                              {!expandedQuarters[qi]&&<td className="p-2 border-l border-white/10 bg-white/5"><DecimalInput value={getQuarterRate(curr.monthlyRates,qi)} onChange={v=>handleRateQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-sm outline-none text-blue-300/80"/></td>}
-                              {expandedQuarters[qi]&&[0,1,2].map(o=>{const mi=qi*3+o;return<td key={mi} className="p-2 border-l border-white/10"><DecimalInput value={curr.monthlyRates[mi]} onChange={v=>handleRateMonthUpdate(curr.id,mi,v)} className="w-full bg-transparent text-center font-mono text-xs text-white/50 outline-none"/></td>;})}
+                              {!expandedQuarters[qi]&&<td className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}><DecimalInput value={getQuarterRate(curr.monthlyRates,qi)} onChange={v=>handleRateQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-sm outline-none text-blue-300/80"/></td>}
+                              {expandedQuarters[qi]&&[0,1,2].map(o=>{const mi=qi*3+o;return<td key={mi} className={`p-2 border-l ${darkMode?'border-white/10':'border-gray-200'}`}><DecimalInput value={curr.monthlyRates[mi]} onChange={v=>handleRateMonthUpdate(curr.id,mi,v)} className={`w-full bg-transparent text-center font-mono text-xs outline-none ${darkMode?'text-white/50':'text-gray-400'}`}/></td>;})}
                             </React.Fragment>
                           ))}
                         </tr>
@@ -429,13 +429,13 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
 
             {/* ACTUALS RATE TABLE */}
             <div ref={ratesSectionRef}>
-              <div className="flex flex-wrap gap-3 justify-between items-center mb-4 border-t border-white/10 pt-8">
+              <div className={`flex flex-wrap gap-3 justify-between items-center mb-4 border-t pt-8 ${darkMode?'border-white/10':'border-gray-200'}`}>
                 <h3 className="font-mono text-sm font-bold text-amber-500 flex items-center gap-2"><DollarSign size={16}/> ACTUAL / FORECAST RATES</h3>
                 <div className="flex flex-wrap gap-2 items-center">
-                  <button onClick={()=>setShowFillConfirm(true)} className="flex items-center gap-1.5 px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-xs font-mono border border-white/20 text-white"><Zap size={12}/> FILL FORECAST</button>
+                  <button onClick={()=>setShowFillConfirm(true)} className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono border ${darkMode?'bg-white/5 hover:bg-white/10 border-white/20':'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700'}`}><Zap size={12}/> FILL FORECAST</button>
                   <div className="flex items-center gap-2">
-                    {lastFetchedLabel && <span className="text-[9px] font-mono text-white/30 hidden sm:inline">{lastFetchedLabel}</span>}
-                    <button onClick={()=>setShowFetchConfirm(true)} disabled={isFetchingRates} className="flex items-center gap-1.5 px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-xs font-mono border border-white/20 text-white disabled:opacity-50">
+                    {lastFetchedLabel && <span className={`text-[9px] font-mono hidden sm:inline ${darkMode?'text-white/30':'text-gray-400'}`}>{lastFetchedLabel}</span>}
+                    <button onClick={()=>setShowFetchConfirm(true)} disabled={isFetchingRates} className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono border disabled:opacity-50 ${darkMode?'bg-white/5 hover:bg-white/10 border-white/20':'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700'}`}>
                       <RefreshCw size={12} className={isFetchingRates?'animate-spin':''}/> APPLY LIVE RATES
                     </button>
                   </div>
@@ -444,24 +444,24 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
               <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
                 <table className="w-full min-w-[480px] text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-white/20">
-                      <th className="p-2 sm:p-3 font-mono text-xs opacity-70 w-36 sm:w-52 text-white">CURRENCY / SOURCE</th>
+                    <tr className={`border-b ${darkMode?'border-white/20':'border-gray-200'}`}>
+                      <th className="p-2 sm:p-3 font-mono text-xs opacity-70 w-36 sm:w-52">CURRENCY / SOURCE</th>
                       {expandedYear?quarters.map((q,qi)=>(
                         <React.Fragment key={q}>
-                          {expandedQuarters[qi]?[0,1,2].map(o=><th key={o} className="p-2 font-mono text-xs text-center border-l border-white/10 min-w-[68px] opacity-70 text-white">{months[qi*3+o].toUpperCase()}</th>):<th className="p-2 sm:p-3 font-mono text-xs text-center border-l border-white/10 min-w-[88px] text-white">{q} (AVG)</th>}
+                          {expandedQuarters[qi]?[0,1,2].map(o=><th key={o} className={`p-2 font-mono text-xs text-center border-l min-w-[68px] opacity-70 ${darkMode?'border-white/10':'border-gray-200'}`}>{months[qi*3+o].toUpperCase()}</th>):<th className={`p-2 sm:p-3 font-mono text-xs text-center border-l min-w-[88px] ${darkMode?'border-white/10':'border-gray-200'}`}>{q} (AVG)</th>}
                         </React.Fragment>
-                      )):<th className="p-2 sm:p-3 font-mono text-xs text-center border-l border-white/10 text-white">YEAR AVG</th>}
+                      )):<th className={`p-2 sm:p-3 font-mono text-xs text-center border-l ${darkMode?'border-white/10':'border-gray-200'}`}>YEAR AVG</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {portfolio.map(curr=>{
                       if(curr.code==='USD') return null;
                       return(
-                        <tr key={curr.id} className="border-b border-white/5 hover:bg-white/5">
-                          <td className="p-2 sm:p-3 font-bold font-mono border-r border-white/10 text-white pl-8">
+                        <tr key={curr.id} className={`border-b ${darkMode?'border-white/5 hover:bg-white/5':'border-gray-100 hover:bg-gray-50'}`}>
+                          <td className={`p-2 sm:p-3 font-bold font-mono border-r pl-8 ${darkMode?'border-white/10':'border-gray-200'}`}>
                             <div className="flex items-center justify-between">
                               <div className="flex flex-col gap-1"><div className="flex items-center gap-1.5"><FlagIcon code={curr.code}/>{curr.code}</div><MiniSourceChip source={curr.rateSource}/></div>
-                              <span className="text-[9px] font-mono opacity-30 text-white">{curr.rateDirection==='LOCAL_PER_USD'?`(${curr.code}/USD)`:`(USD/${curr.code})`}</span>
+                              <span className="text-[9px] font-mono opacity-30">{curr.rateDirection==='LOCAL_PER_USD'?`(${curr.code}/USD)`:`(USD/${curr.code})`}</span>
                             </div>
                           </td>
                           {expandedYear?quarters.map((q,qi)=>(
@@ -469,17 +469,17 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                               {expandedQuarters[qi]?[0,1,2].map(o=>{
                                 const mi=qi*3+o,isActual=mi<=currentYTDMonth,src=curr.monthlyRateSources?curr.monthlyRateSources[mi]:'Manual';
                                 return(
-                                  <td key={mi} className="p-2 border-l border-white/10 bg-white/5">
+                                  <td key={mi} className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>
                                     <div className="relative">
-                                      <DecimalInput value={curr.monthlyActualRates[mi]} onChange={v=>handleActualMonthUpdate(curr.id,mi,v)} className={`w-full bg-transparent text-center font-mono text-sm outline-none ${isActual?'text-white font-bold':'text-white/40 italic'}`}/>
+                                      <DecimalInput value={curr.monthlyActualRates[mi]} onChange={v=>handleActualMonthUpdate(curr.id,mi,v)} className={`w-full bg-transparent text-center font-mono text-sm outline-none ${isActual?(darkMode?'text-white font-bold':'text-gray-900 font-bold'):(darkMode?'text-white/40 italic':'text-gray-400 italic')}`}/>
                                       {isActual&&<div className="absolute top-0 right-0 w-1 h-1 bg-emerald-500 rounded-full"/>}
                                       <div className="absolute -bottom-1.5 right-0 opacity-80 scale-75 origin-bottom-right pointer-events-none"><MiniSourceChip source={src}/></div>
                                     </div>
                                   </td>
                                 );
-                              }):<td className="p-2 border-l border-white/10"><div className="text-center font-mono text-sm opacity-50">{(curr.monthlyActualRates.slice(qi*3,qi*3+3).reduce((a,b)=>a+b,0)/3).toFixed(4)}</div></td>}
+                              }):<td className={`p-2 border-l ${darkMode?'border-white/10':'border-gray-200'}`}><div className="text-center font-mono text-sm opacity-50">{(curr.monthlyActualRates.slice(qi*3,qi*3+3).reduce((a,b)=>a+b,0)/3).toFixed(4)}</div></td>}
                             </React.Fragment>
-                          )):<td className="p-2 border-l border-white/10"><div className="text-center font-mono text-sm opacity-50">{(curr.monthlyActualRates.reduce((a,b)=>a+b,0)/12).toFixed(4)}</div></td>}
+                          )):<td className={`p-2 border-l ${darkMode?'border-white/10':'border-gray-200'}`}><div className="text-center font-mono text-sm opacity-50">{(curr.monthlyActualRates.reduce((a,b)=>a+b,0)/12).toFixed(4)}</div></td>}
                         </tr>
                       );
                     })}
@@ -857,11 +857,11 @@ export default function FXApp() {
               {/* Variance row */}
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 {[
-                  {label:'YTD Variance',value:kpiData.ytdVariance,highlight:true},
-                  {label:'MTD Variance',value:kpiData.mtdVariance,highlight:true},
-                ].map(({label,value,highlight})=>(
-                  <div key={label} className={`p-3 rounded-xl border flex flex-col justify-center ${darkMode?'border-emerald-500/30 bg-emerald-900/10':'border-emerald-500/30 bg-emerald-50'}`}>
-                    <div className={`font-mono text-xs mb-1 uppercase ${darkMode?'text-emerald-400 font-bold':'text-emerald-600 font-bold'}`}>{label}</div>
+                  {label:'YTD Variance',value:kpiData.ytdVariance},
+                  {label:'MTD Variance',value:kpiData.mtdVariance},
+                ].map(({label,value})=>(
+                  <div key={label} className={`p-3 rounded-xl border flex flex-col items-center text-center ${darkMode?'border-emerald-500/30 bg-emerald-900/10':'border-emerald-500/30 bg-emerald-50'}`}>
+                    <div className={`font-mono text-xs mb-1 uppercase font-bold ${darkMode?'text-emerald-400':'text-emerald-600'}`}>{label}</div>
                     <div className={`text-xl sm:text-3xl font-black tracking-tight ${value>=0?(darkMode?theme.accent:'text-emerald-600'):theme.danger}`}>
                       {formatFinancial(value,displayUnit)}
                     </div>
@@ -874,15 +874,28 @@ export default function FXApp() {
                   {label:'Annual Budget',value:kpiData.annualBudget},
                   {label:'YTD Budget',value:kpiData.ytdBudget},
                   {label:'YTD Actual',value:kpiData.ytdActual},
-                  {label:'Annual Forecast',value:kpiData.annualForecast},
-                ].map(({label,value})=>(
-                  <div key={label} className={`p-3 rounded-xl border flex flex-col justify-center ${theme.card}`}>
-                    <div className="font-mono text-xs mb-1 uppercase opacity-50">{label}</div>
-                    <div className="text-xl sm:text-2xl font-black tracking-tight">
-                      {formatFinancial(value,displayUnit)}
+                  {label:'Annual Forecast',value:kpiData.annualForecast,showDelta:true},
+                ].map(({label,value,showDelta})=>{
+                  const pct = showDelta&&kpiData.annualBudget ? (kpiData.annualForecast-kpiData.annualBudget)/kpiData.annualBudget*100 : null;
+                  const isSaving = pct!==null&&pct<=0;
+                  return(
+                    <div key={label} className={`p-3 rounded-xl border flex flex-col items-center text-center ${theme.card}`}>
+                      <div className="font-mono text-xs mb-1 uppercase opacity-50">{label}</div>
+                      <div className="text-xl sm:text-2xl font-black tracking-tight">
+                        {formatFinancial(value,displayUnit)}
+                      </div>
+                      {pct!==null&&(
+                        <div className={`flex items-center gap-0.5 mt-1 text-[10px] font-mono font-bold ${isSaving?'text-emerald-500':'text-red-500'}`}>
+                          {isSaving
+                            ? <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 1 L10 10 M10 10 L10 4 M10 10 L4 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+                            : <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 10 L10 1 M10 1 L10 7 M10 1 L4 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+                          }
+                          {isSaving?`${pct.toFixed(1)}%`:`+${pct.toFixed(1)}%`} vs budget
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
