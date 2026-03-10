@@ -169,6 +169,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
   const [flashStates, setFlashStates] = useState({});
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(null);
   const [showFillConfirm, setShowFillConfirm] = useState(false);
+  const [showFetchConfirm, setShowFetchConfirm] = useState(false);
   const fileInputRef = useRef(null);
   const months = useMemo(() => ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], []);
   const quarters = useMemo(() => ['Q1','Q2','Q3','Q4'], []);
@@ -286,8 +287,9 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
   return (
     <>
       <ConfirmModal isOpen={showFillConfirm} title="Fill Forecast Rates" message="This will overwrite all future forecast rates with the current Budget Rate for each currency." confirmLabel="FILL FORECAST" danger={false} onConfirm={()=>{onFillForecast();setShowFillConfirm(false);notify.success('Forecast filled from budget');}} onCancel={()=>setShowFillConfirm(false)}/>
+      <ConfirmModal isOpen={showFetchConfirm} title="Apply Live Exchange Rates" message={`This will fetch today's live rates from the market and apply them as the Actual Rate for all months up to the current YTD month. Manually entered rates for those months will be overwritten.`} confirmLabel="APPLY LIVE RATES" danger={false} onConfirm={()=>{setShowFetchConfirm(false);handleFetchMarketData();}} onCancel={()=>setShowFetchConfirm(false)}/>
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-sm sm:p-4 lg:p-8">
-        <div className={`w-full sm:max-w-7xl h-[95vh] sm:h-[90vh] flex flex-col rounded-t-xl sm:rounded-xl shadow-2xl border overflow-hidden ${darkMode ? `${theme.card} border-white/20` : 'bg-zinc-900 border-zinc-700'}`}>
+        <div className={`w-full sm:max-w-7xl h-[95vh] sm:h-[90vh] flex flex-col rounded-t-xl sm:rounded-xl shadow-2xl border overflow-hidden text-white ${darkMode ? `${theme.card} border-white/20` : 'bg-zinc-900 border-zinc-700'}`}>
 
           {/* Header */}
           <div className="p-4 sm:p-6 border-b border-white/10 flex flex-wrap gap-3 justify-between items-center bg-black/40 flex-shrink-0">
@@ -321,7 +323,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
             {/* VOLUME TABLE */}
             <div className="mb-12">
               <h3 className="font-mono text-sm font-bold text-emerald-400 mb-4 flex items-center gap-2"><Activity size={16}/> VOLUME PLAN (LOCAL CURRENCY)</h3>
-              <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
+              <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
                 <table className="w-full min-w-[480px] text-left border-collapse">
                   <thead className="sticky top-0 bg-[#18181b] z-20">
                     <tr className="border-b border-white/20">
@@ -331,9 +333,11 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                       </th>
                       {expandedYear && quarters.map((q,qi)=>(
                         <React.Fragment key={q}>
-                          <th className="p-2 sm:p-3 font-mono text-xs text-center border-l border-white/10 bg-white/5 min-w-[88px] text-white">
-                            <div className="flex items-center justify-center gap-1">{q}<button onClick={()=>{const nq=[...expandedQuarters];nq[qi]=!nq[qi];setExpandedQuarters(nq);}} className="hover:text-emerald-400">{expandedQuarters[qi]?<MinusSquare size={11}/>:<PlusSquare size={11}/>}</button></div>
-                          </th>
+                          {!expandedQuarters[qi] && (
+                            <th className="p-2 sm:p-3 font-mono text-xs text-center border-l border-white/10 bg-white/5 min-w-[88px] text-white">
+                              <div className="flex items-center justify-center gap-1">{q}<button onClick={()=>{const nq=[...expandedQuarters];nq[qi]=!nq[qi];setExpandedQuarters(nq);}} className="hover:text-emerald-400"><PlusSquare size={11}/></button></div>
+                            </th>
+                          )}
                           {expandedQuarters[qi]&&[0,1,2].map(o=><th key={o} className="p-2 font-mono text-xs text-center border-l border-white/10 min-w-[68px] opacity-70 text-white">{months[qi*3+o].toUpperCase()}</th>)}
                         </React.Fragment>
                       ))}
@@ -354,7 +358,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                         <td className="p-2 border-l border-white/10 bg-white/5"><FormattedInput value={Math.round(getTotalVolume(curr.monthlyVolumes))} onChange={v=>handleVolumeYearUpdate(curr.id,v)} className="w-full bg-transparent text-center font-bold outline-none text-emerald-400 text-sm"/></td>
                         {expandedYear&&quarters.map((q,qi)=>(
                           <React.Fragment key={q}>
-                            <td className="p-2 border-l border-white/10 bg-white/5"><FormattedInput value={Math.round(getQuarterVolume(curr.monthlyVolumes,qi))} onChange={v=>handleVolumeQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-xs outline-none text-emerald-300/80"/></td>
+                            {!expandedQuarters[qi]&&<td className="p-2 border-l border-white/10 bg-white/5"><FormattedInput value={Math.round(getQuarterVolume(curr.monthlyVolumes,qi))} onChange={v=>handleVolumeQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-xs outline-none text-emerald-300/80"/></td>}
                             {expandedQuarters[qi]&&[0,1,2].map(o=><td key={o} className="p-2 border-l border-white/10"><FormattedInput value={Math.round(curr.monthlyVolumes[qi*3+o])} onChange={v=>handleVolumeMonthUpdate(curr.id,qi*3+o,v)} className="w-full bg-transparent text-center font-mono text-xs text-white/50 outline-none"/></td>)}
                           </React.Fragment>
                         ))}
@@ -383,7 +387,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
             {/* BUDGET RATE TABLE */}
             <div>
               <h3 className="font-mono text-sm font-bold text-blue-400 mb-4 flex items-center gap-2 border-t border-white/10 pt-8"><DollarSign size={16}/> BUDGET RATE PLAN</h3>
-              <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
+              <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
                 <table className="w-full min-w-[480px] text-left border-collapse">
                   <thead>
                     <tr className="border-b border-white/20">
@@ -391,7 +395,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                       <th className="p-2 sm:p-3 font-mono text-xs text-center border-l border-white/10 bg-white/5 text-white">{planningYear} AVG</th>
                       {expandedYear&&quarters.map((q,qi)=>(
                         <React.Fragment key={q}>
-                          <th className="p-2 sm:p-3 font-mono text-xs text-center border-l border-white/10 bg-white/5 min-w-[88px] text-white">{q} AVG</th>
+                          {!expandedQuarters[qi]&&<th className="p-2 sm:p-3 font-mono text-xs text-center border-l border-white/10 bg-white/5 min-w-[88px] text-white">{q} AVG</th>}
                           {expandedQuarters[qi]&&[0,1,2].map(o=><th key={o} className="p-2 font-mono text-xs text-center border-l border-white/10 min-w-[68px] opacity-70 text-white">{months[qi*3+o].toUpperCase()}</th>)}
                         </React.Fragment>
                       ))}
@@ -411,7 +415,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                           <td className="p-2 border-l border-white/10 bg-white/5"><DecimalInput value={curr.annualBudgetRate} onChange={v=>handleRateYearUpdate(curr.id,v)} className="w-full bg-transparent text-center font-bold outline-none text-blue-400"/></td>
                           {expandedYear&&quarters.map((q,qi)=>(
                             <React.Fragment key={q}>
-                              <td className="p-2 border-l border-white/10 bg-white/5"><DecimalInput value={getQuarterRate(curr.monthlyRates,qi)} onChange={v=>handleRateQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-sm outline-none text-blue-300/80"/></td>
+                              {!expandedQuarters[qi]&&<td className="p-2 border-l border-white/10 bg-white/5"><DecimalInput value={getQuarterRate(curr.monthlyRates,qi)} onChange={v=>handleRateQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-sm outline-none text-blue-300/80"/></td>}
                               {expandedQuarters[qi]&&[0,1,2].map(o=>{const mi=qi*3+o;return<td key={mi} className="p-2 border-l border-white/10"><DecimalInput value={curr.monthlyRates[mi]} onChange={v=>handleRateMonthUpdate(curr.id,mi,v)} className="w-full bg-transparent text-center font-mono text-xs text-white/50 outline-none"/></td>;})}
                             </React.Fragment>
                           ))}
@@ -431,13 +435,13 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                   <button onClick={()=>setShowFillConfirm(true)} className="flex items-center gap-1.5 px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-xs font-mono border border-white/20 text-white"><Zap size={12}/> FILL FORECAST</button>
                   <div className="flex items-center gap-2">
                     {lastFetchedLabel && <span className="text-[9px] font-mono text-white/30 hidden sm:inline">{lastFetchedLabel}</span>}
-                    <button onClick={handleFetchMarketData} disabled={isFetchingRates} className="flex items-center gap-1.5 px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-xs font-mono border border-white/20 text-white disabled:opacity-50">
-                      <RefreshCw size={12} className={isFetchingRates?'animate-spin':''}/> FETCH MARKET DATA
+                    <button onClick={()=>setShowFetchConfirm(true)} disabled={isFetchingRates} className="flex items-center gap-1.5 px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-xs font-mono border border-white/20 text-white disabled:opacity-50">
+                      <RefreshCw size={12} className={isFetchingRates?'animate-spin':''}/> APPLY LIVE RATES
                     </button>
                   </div>
                 </div>
               </div>
-              <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
+              <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
                 <table className="w-full min-w-[480px] text-left border-collapse">
                   <thead>
                     <tr className="border-b border-white/20">
@@ -698,8 +702,8 @@ export default function FXApp() {
       // USD_PER_LOCAL (1 ILS = x USD): actual > budget = over budget = RED
       // LOCAL_PER_USD (1 USD = x ILS): actual > budget = saving (weaker local = cheaper) = GREEN
       const isLocalPerUsd=curr.rateDirection==='LOCAL_PER_USD';
-      const overColor=isLocalPerUsd?'#10b981':'#ef4444';
-      const underColor=isLocalPerUsd?'#ef4444':'#10b981';
+      const overColor=isLocalPerUsd?'#10b981':'#f87171';
+      const underColor=isLocalPerUsd?'#f87171':'#10b981';
       const data=mL.map((m,i)=>{
         const b=curr.monthlyRates[i],a=curr.monthlyActualRates[i];
         dMin=Math.min(dMin,b,a);dMax=Math.max(dMax,b,a);
@@ -741,9 +745,11 @@ export default function FXApp() {
   };
 
   const scrollbarStyles=`
-    .custom-scrollbar::-webkit-scrollbar{width:6px;}
+    .custom-scrollbar::-webkit-scrollbar{width:4px;height:4px;}
     .custom-scrollbar::-webkit-scrollbar-track{background:transparent;}
-    .custom-scrollbar::-webkit-scrollbar-thumb{background-color:${darkMode?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)'};border-radius:20px;}
+    .custom-scrollbar::-webkit-scrollbar-thumb{background-color:rgba(255,255,255,0.15);border-radius:20px;}
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover{background-color:rgba(255,255,255,0.28);}
+    .custom-scrollbar::-webkit-scrollbar-corner{background:transparent;}
     input[type=range]{touch-action:none;}
     input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;}
   `;
@@ -774,14 +780,13 @@ export default function FXApp() {
         <div className="mb-8 sm:mb-12 grid grid-cols-12 gap-4 items-end">
           <div className="col-span-12 lg:col-span-8">
             <h1 className="text-[clamp(2rem,6vw,5rem)] leading-[0.85] font-black tracking-tighter uppercase mb-2">
-              <span className="block text-[clamp(1rem,3.5vw,2.5rem)] opacity-70 mb-2 tracking-[0.12em]">{getMonthName(currentYTDMonth)} YTD FX IMPACT</span>
+              <span className="block text-[clamp(1rem,3.5vw,2.5rem)] opacity-70 mb-2 tracking-[0.08em]">{getMonthName(currentYTDMonth)} YTD FX IMPACT</span>
               Variance
               <span className={`block ${kpiData.ytdVariance<0?theme.danger:theme.accent}`}>
                 {formatFinancial(kpiData.ytdVariance, displayUnit)}
                 {scenarioActive&&<span className="ml-3 text-[0.35em] align-middle bg-purple-500/20 text-purple-400 border border-purple-500/40 px-2 py-0.5 rounded font-mono">SIM</span>}
               </span>
             </h1>
-            <p className="font-mono text-xs opacity-60 tracking-widest mt-2">/// TOTAL PORTFOLIO P&L IMPACT (USD)</p>
           </div>
           <div className="col-span-12 lg:col-span-4">
             <div className={`p-4 border-l-4 ${kpiData.ytdVariance<0?'border-rose-500 bg-rose-500/5':'border-emerald-400 bg-emerald-400/5'}`}>
@@ -848,22 +853,37 @@ export default function FXApp() {
             )}
 
             {/* KPI GRID */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
-              {[
-                {label:'Annual Budget',value:kpiData.annualBudget,highlight:false},
-                {label:'YTD Budget',value:kpiData.ytdBudget,highlight:false},
-                {label:'YTD Actual',value:kpiData.ytdActual,highlight:false},
-                {label:'Annual Forecast',value:kpiData.annualForecast,highlight:false},
-                {label:'YTD Variance',value:kpiData.ytdVariance,highlight:true},
-                {label:'MTD Variance',value:kpiData.mtdVariance,highlight:true},
-              ].map(({label,value,highlight})=>(
-                <div key={label} className={`p-3 rounded-xl border flex flex-col justify-center ${highlight?(darkMode?'border-emerald-500/30 bg-emerald-900/10':'border-emerald-500/30 bg-emerald-50'):theme.card}`}>
-                  <div className={`font-mono text-xs mb-1 uppercase ${highlight?(darkMode?'text-emerald-400 font-bold':'text-emerald-600 font-bold'):'opacity-50'}`}>{label}</div>
-                  <div className={`text-xl sm:text-3xl font-black tracking-tight ${highlight?(value>=0?(darkMode?theme.accent:'text-emerald-600'):theme.danger):''}`}>
-                    {formatFinancial(value,displayUnit)}
+            <div className="space-y-2 sm:space-y-3">
+              {/* Variance row */}
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                {[
+                  {label:'YTD Variance',value:kpiData.ytdVariance,highlight:true},
+                  {label:'MTD Variance',value:kpiData.mtdVariance,highlight:true},
+                ].map(({label,value,highlight})=>(
+                  <div key={label} className={`p-3 rounded-xl border flex flex-col justify-center ${darkMode?'border-emerald-500/30 bg-emerald-900/10':'border-emerald-500/30 bg-emerald-50'}`}>
+                    <div className={`font-mono text-xs mb-1 uppercase ${darkMode?'text-emerald-400 font-bold':'text-emerald-600 font-bold'}`}>{label}</div>
+                    <div className={`text-xl sm:text-3xl font-black tracking-tight ${value>=0?(darkMode?theme.accent:'text-emerald-600'):theme.danger}`}>
+                      {formatFinancial(value,displayUnit)}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              {/* Metrics row */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                {[
+                  {label:'Annual Budget',value:kpiData.annualBudget},
+                  {label:'YTD Budget',value:kpiData.ytdBudget},
+                  {label:'YTD Actual',value:kpiData.ytdActual},
+                  {label:'Annual Forecast',value:kpiData.annualForecast},
+                ].map(({label,value})=>(
+                  <div key={label} className={`p-3 rounded-xl border flex flex-col justify-center ${theme.card}`}>
+                    <div className="font-mono text-xs mb-1 uppercase opacity-50">{label}</div>
+                    <div className="text-xl sm:text-2xl font-black tracking-tight">
+                      {formatFinancial(value,displayUnit)}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* YTD PERIOD — tick-timeline selector */}
@@ -985,11 +1005,24 @@ export default function FXApp() {
 
           {/* RIGHT COLUMN */}
           <div className="col-span-12 lg:col-span-4 flex flex-col gap-5">
-            <div className={`flex justify-between items-center sticky top-0 lg:top-2 z-10 py-2 ${darkMode?'bg-black':'bg-gray-50'}`}>
-              <h3 className="font-mono text-xs font-bold tracking-widest flex items-center gap-2 opacity-70"><Calendar size={13}/> RATE PERFORMANCE</h3>
-              <button onClick={()=>{setIsVolumeModalOpen(true);setShouldScrollToRates(true);}} className={`flex items-center gap-1 text-[9px] font-mono border px-2 py-1 rounded ${darkMode?'border-white/20 hover:bg-white/10':'border-black/20 hover:bg-black/5'}`}>
-                <Table size={10}/> EDIT RATES
-              </button>
+            <div className={`sticky top-0 lg:top-2 z-10 py-2 ${darkMode?'bg-black':'bg-gray-50'}`}>
+              <div className="flex justify-between items-center">
+                <h3 className="font-mono text-xs font-bold tracking-widest flex items-center gap-2 opacity-70"><Calendar size={13}/> RATE PERFORMANCE</h3>
+                <button onClick={()=>{setIsVolumeModalOpen(true);setShouldScrollToRates(true);}} className={`flex items-center gap-1 text-[9px] font-mono border px-2 py-1 rounded ${darkMode?'border-white/20 hover:bg-white/10':'border-black/20 hover:bg-black/5'}`}>
+                  <Table size={10}/> EDIT RATES
+                </button>
+              </div>
+              <div className="flex items-center gap-4 mt-1.5">
+                <span className="flex items-center gap-1.5 text-[9px] font-mono opacity-60">
+                  <span className="inline-block w-5 h-[2px] rounded bg-[#60a5fa]"/>Budget
+                </span>
+                <span className="flex items-center gap-1.5 text-[9px] font-mono opacity-60">
+                  <span className="inline-block w-5 h-[2px] rounded bg-[#f59e0b]"/>Actual
+                </span>
+                <span className="flex items-center gap-1.5 text-[9px] font-mono opacity-60">
+                  <svg width="20" height="4" viewBox="0 0 20 4"><line x1="0" y1="2" x2="20" y2="2" stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 3"/></svg>Forecast
+                </span>
+              </div>
             </div>
 
             {portfolio.filter(c=>c.code!=='USD').length===0&&(
@@ -1025,8 +1058,8 @@ export default function FXApp() {
                         <YAxis domain={[dataMin*0.9,dataMax*1.1]} tick={{fontSize:8,fill:'#64748b'}} axisLine={false} tickLine={false} tickFormatter={v=>v.toFixed(2)} width={34}/>
                         <Tooltip content={<CustomRateTooltip darkMode={darkMode}/>} cursor={{stroke:theme.chartGrid,strokeWidth:1}}/>
                         {/* Coloured fills between the two lines, per-segment */}
-                        <Area type="monotone" dataKey="overRange" stroke="none" fill={overColor} fillOpacity={0.3} legendType="none" isAnimationActive={false}/>
-                        <Area type="monotone" dataKey="underRange" stroke="none" fill={underColor} fillOpacity={0.3} legendType="none" isAnimationActive={false}/>
+                        <Area type="monotone" dataKey="overRange" stroke="none" fill={overColor} fillOpacity={0.18} legendType="none" isAnimationActive={false}/>
+                        <Area type="monotone" dataKey="underRange" stroke="none" fill={underColor} fillOpacity={0.18} legendType="none" isAnimationActive={false}/>
                         {/* Budget line – solid blue (#60a5fa = blue-400, matching BUDGET RATE PLAN heading) */}
                         <Area type="monotone" dataKey="budget" stroke="#60a5fa" strokeWidth={2} fill="none" name="Budget Rate">
                           <LabelList dataKey="budget" content={({x,y,value,index})=>{
