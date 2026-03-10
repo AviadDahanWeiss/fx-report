@@ -1261,7 +1261,7 @@ export default function FXApp() {
             </div>
 
             {/* CHART 1 */}
-            <div className={`p-4 sm:p-5 rounded-xl border ${theme.card} h-[200px] sm:h-[280px]`}>
+            <div className={`p-4 sm:p-5 rounded-xl border ${theme.card}`} style={{height:`${Math.max(220, expenseChartData.length * 46 + 60)}px`}}>
               <div className="flex justify-between mb-3">
                 <h3 className="font-mono text-xs font-bold flex gap-2 items-center"><DollarSign size={13}/> BUDGET EXPENSES (USD)</h3>
                 <div className="flex gap-1">
@@ -1272,7 +1272,7 @@ export default function FXApp() {
                 <BarChart layout="vertical" data={expenseChartData} margin={{left:8,right:55,top:0,bottom:15}} barSize={22} isAnimationActive={false}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.chartGrid} opacity={0.2}/>
                   <XAxis type="number" tick={{fontSize:10,fill:darkMode?'#64748b':'#374151'}} axisLine={false} tickLine={false} tickFormatter={v=>formatFinancial(v,displayUnit)}/>
-                  <YAxis type="category" dataKey="code" tick={({x,y,payload})=>{const cc=CURRENCY_TO_COUNTRY[payload.value];const tickFill=darkMode?'#94a3b8':'#374151';return(<g transform={`translate(${x},${y})`}>{cc&&<image key={`flag-${payload.value}`} href={`https://flagcdn.com/w40/${cc}.png`} x={-50} y={-5} width={14} height={10}/>}<text x={cc?-33:-5} y={4} textAnchor="start" fill={tickFill} fontSize={10} fontWeight="bold">{payload.value}</text></g>);}} width={58} axisLine={false} tickLine={false}/>
+                  <YAxis type="category" dataKey="code" interval={0} tick={({x,y,payload})=>{const cc=CURRENCY_TO_COUNTRY[payload.value];const tickFill=darkMode?'#94a3b8':'#374151';return(<g transform={`translate(${x},${y})`}>{cc&&<image key={`flag-${payload.value}`} href={`https://flagcdn.com/w40/${cc}.png`} x={-50} y={-5} width={14} height={10}/>}<text x={cc?-33:-5} y={4} textAnchor="start" fill={tickFill} fontSize={10} fontWeight="bold">{payload.value}</text></g>);}} width={58} axisLine={false} tickLine={false}/>
                   <Bar dataKey="value" radius={[0,4,4,0]} isAnimationActive={false}>
                     {expenseChartData.map((entry,i)=><Cell key={i} fill={entry.isRef?'#52525b':getCurrencyColor(entry.code,i)}/>)}
                     <LabelList dataKey="value" position="right" formatter={v=>formatFinancial(v,displayUnit)} style={{fontSize:10,fill:darkMode?'#fff':'#000',fontFamily:'monospace'}}/>
