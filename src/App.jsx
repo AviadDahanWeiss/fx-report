@@ -51,19 +51,26 @@ const CustomTotalLabel = ({ x, y, value, displayUnit, darkMode }) => {
 
 const CustomRateTooltip = ({ active, payload, label, darkMode }) => {
   if (!active || !payload?.length) return null;
+  // Check if actual historical is present (means we're on a historical month)
+  const hasActualHistorical = payload.some(e => e.dataKey === 'actualHistorical' && typeof e.value === 'number');
   return (
     <div className={`p-2 border rounded-lg text-xs font-mono shadow-xl ${darkMode ? 'bg-black border-zinc-700 text-white' : 'bg-white border-zinc-200 text-black'}`}>
       <div className="mb-1 opacity-50 font-bold">{label}</div>
       {payload.map((entry, i) => {
-        // Hide fill areas, forecast line (duplicate), and null values
-        const hidden = ['overRange','underRange','actualForecast'];
+        const hidden = ['overRange','underRange'];
         if (hidden.includes(entry.dataKey) || typeof entry.value !== 'number') return null;
-        // Show actualHistorical as "Actual Rate"
-        const label = entry.dataKey === 'actualHistorical' ? 'Actual Rate' : entry.name;
+        // Hide actualForecast if actualHistorical also present (YTD overlap month)
+        if (entry.dataKey === 'actualForecast' && hasActualHistorical) return null;
+        const entryLabel = entry.dataKey === 'actualHistorical' ? 'Actual Rate'
+                         : entry.dataKey === 'actualForecast'   ? 'Forecast Rate'
+                         : entry.name;
+        const isDashed = entry.dataKey === 'actualForecast';
         return (
           <div key={i} style={{ color: entry.stroke || entry.fill }} className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke || entry.fill }} />
-            <span>{label}:</span>
+            {isDashed
+              ? <svg width="8" height="8"><line x1="0" y1="4" x2="8" y2="4" stroke={entry.stroke||entry.fill} strokeWidth="2" strokeDasharray="3 2"/></svg>
+              : <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke || entry.fill }} />}
+            <span>{entryLabel}:</span>
             <span className="font-bold">{entry.value.toFixed(4)}</span>
           </div>
         );
@@ -587,18 +594,18 @@ const ParticleIntro = ({ onStart }) => {
     window.addEventListener('mousemove', onMM);
 
     // Build particles with random Brownian motion
-    const N = 380;
+    const N = 700;
     st.particles = Array.from({ length: N }, (_, i) => ({
       id: i,
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       vx: (Math.random() - 0.5) * 1.4,
       vy: (Math.random() - 0.5) * 1.4,
-      size: 0.8 + Math.random() * 1.6,
-      baseAlpha: 0.22 + Math.random() * 0.48,
+      size: 0.2 + Math.random() * 0.5,
+      baseAlpha: 0.25 + Math.random() * 0.55,
       phase: Math.random() * Math.PI * 2,
       tx: null, ty: null, inFormation: false,
-      color: Math.random() < 0.09 ? [52,211,153] : [200,222,255],
+      color: [255,255,255],
     }));
 
     const CURRENCIES = ['USD','ILS','GBP','EUR','JPY','CNY','CAD'];
@@ -1112,10 +1119,10 @@ export default function FXApp() {
                     <FileSpreadsheet size={12}/> XLSX
                   </button>
                   <button onClick={()=>handlePdfExport(true)} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
-                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">with Ex Rate</span>
+                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">with Ex Rate Plan</span>
                   </button>
                   <button onClick={()=>handlePdfExport(false)} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
-                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">without Ex Rate</span>
+                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">without Ex Rate Plan</span>
                   </button>
                 </div>
               </div>
@@ -1385,6 +1392,10 @@ export default function FXApp() {
                 actualHistorical:i<=currentYTDMonth?d.actual:null,
                 actualForecast:i>=currentYTDMonth?d.actual:null,
               }));
+              // Determine label placement: whichever line is higher at YTD gets its label on top
+              const ytdActualVal = splitData[curIdx]?.actualHistorical;
+              const ytdBudgetVal = splitData[curIdx]?.budget;
+              const actualAbove = (ytdActualVal!=null&&ytdBudgetVal!=null) ? ytdActualVal>ytdBudgetVal : true;
               return(
                 <div key={curr.id} className={`p-4 rounded-xl border ${theme.card} hover:border-blue-500/50 transition-colors`}>
                   <div className="flex justify-between items-center mb-3">
@@ -1405,22 +1416,26 @@ export default function FXApp() {
                         {/* Coloured fills between the two lines, per-segment */}
                         <Area type="monotone" dataKey="overRange" stroke="none" fill={overColor} fillOpacity={0.18} legendType="none" isAnimationActive={false}/>
                         <Area type="monotone" dataKey="underRange" stroke="none" fill={underColor} fillOpacity={0.18} legendType="none" isAnimationActive={false}/>
-                        {/* Budget line – solid blue (#60a5fa = blue-400, matching BUDGET RATE PLAN heading) */}
+                        {/* Budget line */}
                         <Area type="monotone" dataKey="budget" stroke="#60a5fa" strokeWidth={2} fill="none" name="Budget Rate">
                           <LabelList dataKey="budget" content={({x,y,value,index})=>{
                             if(index!==curIdx||typeof value!=='number')return null;
-                            return <text key="bl" x={x} y={y+14} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#60a5fa" fontWeight="bold">{value.toFixed(4)}</text>;
+                            // Budget label goes opposite side from actual
+                            const yOff = actualAbove ? 14 : -8;
+                            return <text key="bl" x={x} y={y+yOff} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#60a5fa" fontWeight="bold">{value.toFixed(4)}</text>;
                           }}/>
                         </Area>
-                        {/* Actual historical – solid amber (#f59e0b = amber-500, matching ACTUAL/FORECAST RATES heading) */}
+                        {/* Actual historical */}
                         <Area type="monotone" dataKey="actualHistorical" stroke="#f59e0b" strokeWidth={2} fill="none" name="Actual Rate" connectNulls={false} isAnimationActive={false}>
                           <LabelList dataKey="actualHistorical" content={({x,y,value,index})=>{
                             if(index!==curIdx||typeof value!=='number')return null;
-                            return <text key="al" x={x} y={y-8} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#f59e0b" fontWeight="bold">{value.toFixed(4)}</text>;
+                            // Actual label goes on its own side
+                            const yOff = actualAbove ? -8 : 14;
+                            return <text key="al" x={x} y={y+yOff} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#f59e0b" fontWeight="bold">{value.toFixed(4)}</text>;
                           }}/>
                         </Area>
-                        {/* Forecast – dashed amber, same color, no extra label */}
-                        <Area type="monotone" dataKey="actualForecast" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 4" fill="none" legendType="none" connectNulls={false} isAnimationActive={false}/>
+                        {/* Forecast – dashed amber, shows in tooltip */}
+                        <Area type="monotone" dataKey="actualForecast" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 4" fill="none" name="Forecast Rate" legendType="none" connectNulls={false} isAnimationActive={false}/>
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
