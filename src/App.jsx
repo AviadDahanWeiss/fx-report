@@ -28,21 +28,22 @@ import { ScenarioPanel } from './components/scenario/ScenarioPanel';
 const CustomTotalLabel = ({ x, y, value, displayUnit, darkMode }) => {
   if (value === undefined || value === null) return null;
   const formatted = formatFinancial(value, displayUnit);
-  const width = 36; const height = 18;
   const isPositive = value >= 0;
-  const yOffset = isPositive ? -25 : 8;
+  const textColor = isPositive ? '#10b981' : '#ef4444';
+  const bgFill = isPositive ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+  const borderColor = isPositive ? 'rgba(16,185,129,0.55)' : 'rgba(239,68,68,0.55)';
+  const charWidth = 6.5;
+  const padding = 16;
+  const width = Math.max(48, formatted.length * charWidth + padding);
+  const height = 18;
+  const rx = 9;
+  const yOffset = isPositive ? -28 : 10;
   return (
     <g style={{ pointerEvents: 'none' }}>
-      <defs>
-        <filter id="labelShadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="1" stdDeviation="1" floodOpacity="0.3" />
-        </filter>
-      </defs>
-      <rect x={x - width / 2} y={y + yOffset} width={width} height={height} rx={2}
-        fill={darkMode ? "#000" : "#fff"} stroke={isPositive ? "#10b981" : "#ef4444"} strokeWidth={1}
-        filter="url(#labelShadow)" />
-      <text x={x} y={y + yOffset + 13} textAnchor="middle" fontSize={9} fontFamily="monospace"
-        fontWeight="bold" fill={isPositive ? "#10b981" : "#ef4444"}>{formatted}</text>
+      <rect x={x - width / 2} y={y + yOffset} width={width} height={height} rx={rx}
+        fill={bgFill} stroke={borderColor} strokeWidth={1} />
+      <text x={x} y={y + yOffset + 12.5} textAnchor="middle" fontSize={9} fontFamily="monospace"
+        fontWeight="bold" fill={textColor} letterSpacing="0.02em">{formatted}</text>
     </g>
   );
 };
@@ -53,11 +54,15 @@ const CustomRateTooltip = ({ active, payload, label, darkMode }) => {
     <div className={`p-2 border rounded-lg text-xs font-mono shadow-xl ${darkMode ? 'bg-black border-zinc-700 text-white' : 'bg-white border-zinc-200 text-black'}`}>
       <div className="mb-1 opacity-50 font-bold">{label}</div>
       {payload.map((entry, i) => {
-        if (entry.dataKey === 'range' || typeof entry.value !== 'number') return null;
+        // Hide fill areas, forecast line (duplicate), and null values
+        const hidden = ['overRange','underRange','actualForecast'];
+        if (hidden.includes(entry.dataKey) || typeof entry.value !== 'number') return null;
+        // Show actualHistorical as "Actual Rate"
+        const label = entry.dataKey === 'actualHistorical' ? 'Actual Rate' : entry.name;
         return (
           <div key={i} style={{ color: entry.stroke || entry.fill }} className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke || entry.fill }} />
-            <span>{entry.name}:</span>
+            <span>{label}:</span>
             <span className="font-bold">{entry.value.toFixed(4)}</span>
           </div>
         );
@@ -66,16 +71,16 @@ const CustomRateTooltip = ({ active, payload, label, darkMode }) => {
   );
 };
 
-const CustomImpactTooltip = ({ active, payload, displayUnit }) => {
+const CustomImpactTooltip = ({ active, payload, displayUnit, darkMode }) => {
   if (!active || !payload?.length) return null;
   const data = payload[0].payload;
   return (
-    <div className="p-3 border shadow-xl rounded-lg text-xs font-mono bg-black border-zinc-600 text-white">
-      <div className="mb-2 font-bold border-b border-white/20 pb-1 flex items-center gap-2">
+    <div className={`p-3 border shadow-xl rounded-lg text-xs font-mono ${darkMode ? 'bg-black border-zinc-600 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+      <div className={`mb-2 font-bold border-b pb-1 flex items-center gap-2 ${darkMode ? 'border-white/20' : 'border-gray-200'}`}>
         <FlagIcon code={data.code} /> {data.code}
       </div>
       <div className="space-y-1">
-        <div className="flex justify-between gap-4 text-blue-400">
+        <div className="flex justify-between gap-4 text-blue-500">
           <span>Share:</span><span>{formatFinancial(data.rawShare, displayUnit)} ({fmtPct(data.share)})</span>
         </div>
         {data.code !== 'USD' && (
@@ -117,7 +122,7 @@ const CurrencyRateCard = ({ data, onChange, onRemove, theme, darkMode, onToggleD
           <FlagIcon code={data.code} />
           <span className={`font-bold font-mono text-sm ${theme.accent}`}>{data.code}</span>
           {!isBaseCurrency && (
-            <button onClick={() => onToggleDirection(data.id)} className="ml-1 px-1.5 py-0.5 text-[9px] rounded hover:bg-white/10 text-white/50 hover:text-white transition-colors border border-white/5" title="Swap Direction">
+            <button onClick={() => onToggleDirection(data.id)} className={`ml-1 px-1.5 py-0.5 text-[9px] rounded transition-colors border ${darkMode ? 'hover:bg-white/10 text-white/50 hover:text-white border-white/10' : 'hover:bg-black/5 text-gray-400 hover:text-gray-700 border-gray-200'}`} title="Swap Direction">
               {toggleLabel}
             </button>
           )}
@@ -131,7 +136,7 @@ const CurrencyRateCard = ({ data, onChange, onRemove, theme, darkMode, onToggleD
       <div className="space-y-2">
         <div className="flex justify-between items-center">
           <div className="font-mono text-xs opacity-50 uppercase">Plan Vol</div>
-          <div className="text-sm font-mono font-bold text-white/90">{formatCompact(totalVolume)}</div>
+          <div className={`text-sm font-mono font-bold ${darkMode ? 'text-white/90' : 'text-gray-800'}`}>{formatCompact(totalVolume)}</div>
         </div>
         {!isBaseCurrency && (
           <>
@@ -141,7 +146,7 @@ const CurrencyRateCard = ({ data, onChange, onRemove, theme, darkMode, onToggleD
               </div>
               <div className={`text-sm font-bold ${theme.accent}`}>{effectiveRate.toFixed(4)}</div>
             </div>
-            <div className="flex justify-between items-center pt-1 border-t border-white/5">
+            <div className={`flex justify-between items-center pt-1 border-t ${darkMode ? 'border-white/5' : 'border-gray-200'}`}>
               <div className="font-mono text-xs opacity-50 uppercase">Act/Fcst (Avg)</div>
               <div className="text-sm font-mono text-blue-400 font-bold">{effectiveActualRate.toFixed(4)}</div>
             </div>
@@ -282,7 +287,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
     <>
       <ConfirmModal isOpen={showFillConfirm} title="Fill Forecast Rates" message="This will overwrite all future forecast rates with the current Budget Rate for each currency." confirmLabel="FILL FORECAST" danger={false} onConfirm={()=>{onFillForecast();setShowFillConfirm(false);notify.success('Forecast filled from budget');}} onCancel={()=>setShowFillConfirm(false)}/>
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-sm sm:p-4 lg:p-8">
-        <div className={`w-full sm:max-w-7xl h-[95vh] sm:h-[90vh] flex flex-col ${theme.card} rounded-t-xl sm:rounded-xl shadow-2xl border ${darkMode?'border-white/20':'border-gray-300'} overflow-hidden`}>
+        <div className={`w-full sm:max-w-7xl h-[95vh] sm:h-[90vh] flex flex-col rounded-t-xl sm:rounded-xl shadow-2xl border overflow-hidden ${darkMode ? `${theme.card} border-white/20` : 'bg-zinc-900 border-zinc-700'}`}>
 
           {/* Header */}
           <div className="p-4 sm:p-6 border-b border-white/10 flex flex-wrap gap-3 justify-between items-center bg-black/40 flex-shrink-0">
@@ -769,7 +774,7 @@ export default function FXApp() {
         <div className="mb-8 sm:mb-12 grid grid-cols-12 gap-4 items-end">
           <div className="col-span-12 lg:col-span-8">
             <h1 className="text-[clamp(2rem,6vw,5rem)] leading-[0.85] font-black tracking-tighter uppercase mb-2">
-              <span className="block text-[clamp(1rem,3.5vw,2.5rem)] opacity-70 mb-2">{getMonthName(currentYTDMonth)} YTD FX IMPACT</span>
+              <span className="block text-[clamp(1rem,3.5vw,2.5rem)] opacity-70 mb-2 tracking-[0.12em]">{getMonthName(currentYTDMonth)} YTD FX IMPACT</span>
               Variance
               <span className={`block ${kpiData.ytdVariance<0?theme.danger:theme.accent}`}>
                 {formatFinancial(kpiData.ytdVariance, displayUnit)}
@@ -798,7 +803,7 @@ export default function FXApp() {
                   <button onClick={()=>setDarkMode(!darkMode)} className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-all ${darkMode?'border-white/20 hover:bg-white/10 bg-white/5':'border-black/10 hover:bg-black/5 bg-gray-100'}`}>{darkMode?<Sun size={15}/>:<Moon size={15}/>}</button>
                   <div className="flex-grow">
                     <input type="file" ref={fileInputRefMain} style={{display:'none'}} onChange={handleImportFileMain} accept=".csv"/>
-                    <button onClick={()=>fileInputRefMain.current.click()} className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-mono border border-white/20 text-white"><Upload size={13}/> IMPORT</button>
+                    <button onClick={()=>fileInputRefMain.current.click()} className={`w-full flex items-center justify-center gap-2 h-10 rounded-lg text-xs font-mono border ${darkMode ? 'bg-white/5 hover:bg-white/10 border-white/20 text-white' : 'bg-black/5 hover:bg-black/10 border-black/15 text-gray-700'}`}><Upload size={13}/> IMPORT</button>
                   </div>
                 </div>
                 <button onClick={()=>setIsVolumeModalOpen(true)} className={`w-full py-2.5 rounded-lg border ${darkMode?'border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400':'border-blue-500/50 bg-blue-50 text-blue-600'} font-bold font-mono tracking-widest text-[10px] flex items-center justify-center gap-2`}>
@@ -812,8 +817,8 @@ export default function FXApp() {
                   ))}
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={handleExcelExport} className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-[10px] font-mono border bg-white/5 hover:bg-white/10 border-white/20 text-white"><FileSpreadsheet size={12}/> XLSX</button>
-                  <button onClick={handlePdfExport} className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-[10px] font-mono border bg-white/5 hover:bg-white/10 border-white/20 text-white"><Download size={12}/> PDF</button>
+                  <button onClick={handleExcelExport} className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-[10px] font-mono border ${darkMode ? 'bg-white/5 hover:bg-white/10 border-white/20 text-white' : 'bg-black/5 hover:bg-black/10 border-black/15 text-gray-700'}`}><FileSpreadsheet size={12}/> XLSX</button>
+                  <button onClick={handlePdfExport} className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg text-[10px] font-mono border ${darkMode ? 'bg-white/5 hover:bg-white/10 border-white/20 text-white' : 'bg-black/5 hover:bg-black/10 border-black/15 text-gray-700'}`}><Download size={12}/> PDF</button>
                 </div>
                 <h3 className="font-mono text-xs font-bold tracking-widest opacity-50 px-1 mt-1">EX RATE PLAN</h3>
               </div>
@@ -896,7 +901,7 @@ export default function FXApp() {
               <div className="flex justify-between mb-3">
                 <h3 className="font-mono text-xs font-bold flex gap-2 items-center"><DollarSign size={13}/> BUDGET EXPENSES (USD)</h3>
                 <div className="flex gap-1">
-                  {['ANNUAL','YTD'].map(m=><button key={m} onClick={()=>setViewMode(m)} className={`px-2 py-0.5 text-[9px] border rounded ${viewMode===m?'bg-white text-black border-white':'border-white/20'}`}>{m}</button>)}
+                  {['ANNUAL','YTD'].map(m=><button key={m} onClick={()=>setViewMode(m)} className={`px-2 py-0.5 text-[9px] border rounded ${viewMode===m?(darkMode?'bg-white text-black border-white':'bg-gray-900 text-white border-gray-900'):(darkMode?'border-white/20 text-white/60':'border-gray-300 text-gray-500')}`}>{m}</button>)}
                 </div>
               </div>
               <ResponsiveContainer width="100%" height="100%">
@@ -920,14 +925,18 @@ export default function FXApp() {
               </div>
               <div className="h-[180px] sm:h-[230px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={impactChartData} barSize={28} margin={{top:8,right:8,left:8,bottom:18}}>
+                  <BarChart data={impactChartData} barSize={28} margin={{top:24,right:8,left:8,bottom:18}}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.chartGrid} opacity={0.2}/>
                     <XAxis dataKey="code" tick={({x,y,payload})=>(<g transform={`translate(${x},${y})`}><foreignObject x={-9} y={0} width={18} height={12}><div className="flex justify-center"><FlagIcon code={payload.value} className="w-4 h-3 rounded-[1px]"/></div></foreignObject><text x={0} y={22} textAnchor="middle" fill="#64748b" fontSize={10} fontWeight="bold">{payload.value}</text></g>)} height={35} axisLine={false} tickLine={false}/>
                     <YAxis tick={{fontSize:10,fill:'#64748b'}} axisLine={false} tickLine={false} tickFormatter={v=>`${(v*100).toFixed(0)}%`}/>
-                    <Tooltip content={<CustomImpactTooltip displayUnit={displayUnit}/>} cursor={{fill:'transparent'}}/>
+                    <Tooltip content={<CustomImpactTooltip displayUnit={displayUnit} darkMode={darkMode}/>} cursor={{fill:'transparent'}}/>
                     <Legend iconType="circle" wrapperStyle={{fontSize:'11px'}}/>
-                    <Bar dataKey="share" name="% of Spend" fill="#3b82f6" radius={[4,4,0,0]}/>
-                    <Bar dataKey="impact" name="% of Variance" fill="#f59e0b" radius={[4,4,0,0]}/>
+                    <Bar dataKey="share" name="% of Spend" fill="#3b82f6" radius={[4,4,0,0]}>
+                      <LabelList dataKey="share" position="top" formatter={v=>`${(v*100).toFixed(0)}%`} style={{fill:'#3b82f6',fontSize:9,fontFamily:'monospace',fontWeight:'bold'}}/>
+                    </Bar>
+                    <Bar dataKey="impact" name="% of Variance" fill="#f59e0b" radius={[4,4,0,0]}>
+                      <LabelList dataKey="impact" position="top" formatter={v=>`${(v*100).toFixed(0)}%`} style={{fill:'#f59e0b',fontSize:9,fontFamily:'monospace',fontWeight:'bold'}}/>
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -945,7 +954,7 @@ export default function FXApp() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[9px] opacity-50">FORECAST</span>
-                    <button onClick={()=>setIsAccumulatedForecast(!isAccumulatedForecast)} className={`w-8 h-4 rounded-full p-0.5 transition-colors ${isAccumulatedForecast?'bg-emerald-500':'bg-gray-700'}`}>
+                    <button onClick={()=>setIsAccumulatedForecast(!isAccumulatedForecast)} className={`w-8 h-4 rounded-full p-0.5 transition-colors ${isAccumulatedForecast?'bg-emerald-500':darkMode?'bg-gray-700':'bg-gray-300'}`}>
                       <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${isAccumulatedForecast?'translate-x-4':'translate-x-0'}`}/>
                     </button>
                   </div>
@@ -991,20 +1000,26 @@ export default function FXApp() {
               const chartData=allChartsData.currencies[curr.id];
               if(!chartData)return null;
               const{data,dataMin,dataMax,overColor,underColor}=chartData;
-              const curIdx=currentYTDMonth-1;
+              const curIdx=currentYTDMonth;
+              // Split actual into solid historical (≤ YTD) and dashed forecast (≥ YTD)
+              const splitData=data.map((d,i)=>({
+                ...d,
+                actualHistorical:i<=currentYTDMonth?d.actual:null,
+                actualForecast:i>=currentYTDMonth?d.actual:null,
+              }));
               return(
                 <div key={curr.id} className={`p-4 rounded-xl border ${theme.card} hover:border-blue-500/50 transition-colors`}>
                   <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center gap-2"><FlagIcon code={curr.code}/><h4 className="text-xs font-bold font-mono text-white/90">{curr.code} RATE TREND</h4></div>
+                    <div className="flex items-center gap-2"><FlagIcon code={curr.code}/><h4 className={`text-xs font-bold font-mono ${darkMode ? 'text-white/90' : 'text-gray-800'}`}>{curr.code} RATE TREND</h4></div>
                     <div className="flex items-center gap-1.5">
                       <span className="text-[9px] opacity-30 font-mono">2026</span>
                       <div className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[9px] font-mono border border-blue-500/20">{curr.rateDirection==='LOCAL_PER_USD'?`1 USD = ${curr.code}`:`1 ${curr.code} = USD`}</div>
-                      <button onClick={()=>handleCardToggleDirection(curr.id)} className="p-0.5 rounded hover:bg-white/10 text-white/50 hover:text-white" title="Swap"><ArrowLeftRight size={11}/></button>
+                      <button onClick={()=>handleCardToggleDirection(curr.id)} className={`p-0.5 rounded ${darkMode ? 'hover:bg-white/10 text-white/50 hover:text-white' : 'hover:bg-black/5 text-gray-400 hover:text-gray-700'}`} title="Swap"><ArrowLeftRight size={11}/></button>
                     </div>
                   </div>
                   <div className="h-[140px] sm:h-[170px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={data} margin={{top:24,right:4,left:0,bottom:0}}>
+                      <AreaChart data={splitData} margin={{top:24,right:4,left:0,bottom:0}}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.chartGrid} opacity={0.2}/>
                         <XAxis dataKey="month" tick={{fontSize:8,fill:'#64748b'}} axisLine={false} tickLine={false} interval={0}/>
                         <YAxis domain={[dataMin*0.9,dataMax*1.1]} tick={{fontSize:8,fill:'#64748b'}} axisLine={false} tickLine={false} tickFormatter={v=>v.toFixed(2)} width={34}/>
@@ -1012,20 +1027,22 @@ export default function FXApp() {
                         {/* Coloured fills between the two lines, per-segment */}
                         <Area type="monotone" dataKey="overRange" stroke="none" fill={overColor} fillOpacity={0.3} legendType="none" isAnimationActive={false}/>
                         <Area type="monotone" dataKey="underRange" stroke="none" fill={underColor} fillOpacity={0.3} legendType="none" isAnimationActive={false}/>
-                        {/* Budget line – dashed amber; label only on current month */}
-                        <Area type="monotone" dataKey="budget" stroke="#fbbf24" strokeWidth={2} strokeDasharray="4 4" fill="none" name="Budget Rate">
+                        {/* Budget line – solid blue (#60a5fa = blue-400, matching BUDGET RATE PLAN heading) */}
+                        <Area type="monotone" dataKey="budget" stroke="#60a5fa" strokeWidth={2} fill="none" name="Budget Rate">
                           <LabelList dataKey="budget" content={({x,y,value,index})=>{
                             if(index!==curIdx||typeof value!=='number')return null;
-                            return <text key="bl" x={x} y={y+14} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#fbbf24" fontWeight="bold">{value.toFixed(4)}</text>;
+                            return <text key="bl" x={x} y={y+14} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#60a5fa" fontWeight="bold">{value.toFixed(4)}</text>;
                           }}/>
                         </Area>
-                        {/* Actual line – solid white; label only on current month */}
-                        <Area type="monotone" dataKey="actual" stroke="#fff" strokeWidth={2} fill="none" name="Actual Rate">
-                          <LabelList dataKey="actual" content={({x,y,value,index})=>{
+                        {/* Actual historical – solid amber (#f59e0b = amber-500, matching ACTUAL/FORECAST RATES heading) */}
+                        <Area type="monotone" dataKey="actualHistorical" stroke="#f59e0b" strokeWidth={2} fill="none" name="Actual Rate" connectNulls={false} isAnimationActive={false}>
+                          <LabelList dataKey="actualHistorical" content={({x,y,value,index})=>{
                             if(index!==curIdx||typeof value!=='number')return null;
-                            return <text key="al" x={x} y={y-8} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#fff" fontWeight="bold">{value.toFixed(4)}</text>;
+                            return <text key="al" x={x} y={y-8} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#f59e0b" fontWeight="bold">{value.toFixed(4)}</text>;
                           }}/>
                         </Area>
+                        {/* Forecast – dashed amber, same color, no extra label */}
+                        <Area type="monotone" dataKey="actualForecast" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 4" fill="none" legendType="none" connectNulls={false} isAnimationActive={false}/>
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
