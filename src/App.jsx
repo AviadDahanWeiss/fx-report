@@ -8,7 +8,7 @@ import {
   Download, Upload, FileSpreadsheet, RefreshCw, Table, Zap,
   PanelLeftClose, PanelLeftOpen, Menu, Sun, Moon, Plus, Trash2,
   LayoutDashboard, PlusSquare, MinusSquare, Info, Copy,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, Github
 } from 'lucide-react';
 
 import { ISO_CURRENCIES, CURRENCY_TO_COUNTRY, getCurrencyColor, DEFAULT_PORTFOLIO } from './constants/currencies';
@@ -51,19 +51,26 @@ const CustomTotalLabel = ({ x, y, value, displayUnit, darkMode }) => {
 
 const CustomRateTooltip = ({ active, payload, label, darkMode }) => {
   if (!active || !payload?.length) return null;
+  // Check if actual historical is present (means we're on a historical month)
+  const hasActualHistorical = payload.some(e => e.dataKey === 'actualHistorical' && typeof e.value === 'number');
   return (
     <div className={`p-2 border rounded-lg text-xs font-mono shadow-xl ${darkMode ? 'bg-black border-zinc-700 text-white' : 'bg-white border-zinc-200 text-black'}`}>
       <div className="mb-1 opacity-50 font-bold">{label}</div>
       {payload.map((entry, i) => {
-        // Hide fill areas, forecast line (duplicate), and null values
-        const hidden = ['overRange','underRange','actualForecast'];
+        const hidden = ['overRange','underRange'];
         if (hidden.includes(entry.dataKey) || typeof entry.value !== 'number') return null;
-        // Show actualHistorical as "Actual Rate"
-        const label = entry.dataKey === 'actualHistorical' ? 'Actual Rate' : entry.name;
+        // Hide actualForecast if actualHistorical also present (YTD overlap month)
+        if (entry.dataKey === 'actualForecast' && hasActualHistorical) return null;
+        const entryLabel = entry.dataKey === 'actualHistorical' ? 'Actual Rate'
+                         : entry.dataKey === 'actualForecast'   ? 'Forecast Rate'
+                         : entry.name;
+        const isDashed = entry.dataKey === 'actualForecast';
         return (
           <div key={i} style={{ color: entry.stroke || entry.fill }} className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke || entry.fill }} />
-            <span>{label}:</span>
+            {isDashed
+              ? <svg width="8" height="8"><line x1="0" y1="4" x2="8" y2="4" stroke={entry.stroke||entry.fill} strokeWidth="2" strokeDasharray="3 2"/></svg>
+              : <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke || entry.fill }} />}
+            <span>{entryLabel}:</span>
             <span className="font-bold">{entry.value.toFixed(4)}</span>
           </div>
         );
@@ -587,18 +594,18 @@ const ParticleIntro = ({ onStart }) => {
     window.addEventListener('mousemove', onMM);
 
     // Build particles with random Brownian motion
-    const N = 380;
+    const N = 700;
     st.particles = Array.from({ length: N }, (_, i) => ({
       id: i,
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       vx: (Math.random() - 0.5) * 1.4,
       vy: (Math.random() - 0.5) * 1.4,
-      size: 0.8 + Math.random() * 1.6,
-      baseAlpha: 0.22 + Math.random() * 0.48,
+      size: 0.2 + Math.random() * 0.5,
+      baseAlpha: 0.25 + Math.random() * 0.55,
       phase: Math.random() * Math.PI * 2,
       tx: null, ty: null, inFormation: false,
-      color: Math.random() < 0.09 ? [52,211,153] : [200,222,255],
+      color: [255,255,255],
     }));
 
     const CURRENCIES = ['USD','ILS','GBP','EUR','JPY','CNY','CAD'];
@@ -1112,10 +1119,10 @@ export default function FXApp() {
                     <FileSpreadsheet size={12}/> XLSX
                   </button>
                   <button onClick={()=>handlePdfExport(true)} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
-                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">with Ex Rate</span>
+                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">with Ex Rate Plan</span>
                   </button>
                   <button onClick={()=>handlePdfExport(false)} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
-                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">without Ex Rate</span>
+                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">without Ex Rate Plan</span>
                   </button>
                 </div>
               </div>
@@ -1136,7 +1143,7 @@ export default function FXApp() {
               </div>
 
               {/* ── 5. What-If Scenario (collapsible) ── */}
-              <div className="mx-2 mt-3 mb-1">
+              <div className={`mx-2 mt-3 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
                 <button onClick={()=>setScenarioPanelOpen(v=>!v)} className="w-full flex items-center justify-between px-1 mb-2 group">
                   <span className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase group-hover:opacity-60 transition-opacity">What-If Scenario</span>
                   {scenarioPanelOpen ? <ChevronDown size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/> : <ChevronRight size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/>}
@@ -1144,6 +1151,27 @@ export default function FXApp() {
                 {scenarioPanelOpen && (
                   <ScenarioPanel portfolio={portfolio} deltas={scenarioDeltas} onDeltaChange={(code,val)=>setScenarioDeltas(prev=>({...prev,[code]:val}))} active={scenarioActive} onToggle={()=>setScenarioActive(!scenarioActive)} baseKpi={baseKpiData||kpiData} simKpi={kpiData} displayUnit={displayUnit} darkMode={darkMode}/>
                 )}
+              </div>
+
+              {/* ── 6. Connect ── */}
+              <div className="mx-2 mt-3 mb-2">
+                <div className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase mb-2 px-1">Connect</div>
+                <div className="flex flex-col gap-1">
+                  <a href="https://github.com/AviadDahanWeiss/fx-report" target="_blank" rel="noopener noreferrer"
+                    className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
+                    <Github size={12}/>
+                    <span>GitHub</span>
+                    <span className="opacity-30 ml-auto text-[9px]">fx-report</span>
+                  </a>
+                  <a href="https://www.linkedin.com/in/aviaddahanweiss" target="_blank" rel="noopener noreferrer"
+                    className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-[#0A66C2]/15 hover:bg-[#0A66C2]/25 border-[#0A66C2]/30 text-[#4da3f5]':'bg-[#0A66C2]/8 hover:bg-[#0A66C2]/15 border-[#0A66C2]/25 text-[#0A66C2]'}`}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                    <span>LinkedIn</span>
+                    <span className="opacity-30 ml-auto text-[9px]">Connect</span>
+                  </a>
+                </div>
               </div>
             </div>
           )}
@@ -1385,6 +1413,10 @@ export default function FXApp() {
                 actualHistorical:i<=currentYTDMonth?d.actual:null,
                 actualForecast:i>=currentYTDMonth?d.actual:null,
               }));
+              // Determine label placement: whichever line is higher at YTD gets its label on top
+              const ytdActualVal = splitData[curIdx]?.actualHistorical;
+              const ytdBudgetVal = splitData[curIdx]?.budget;
+              const actualAbove = (ytdActualVal!=null&&ytdBudgetVal!=null) ? ytdActualVal>ytdBudgetVal : true;
               return(
                 <div key={curr.id} className={`p-4 rounded-xl border ${theme.card} hover:border-blue-500/50 transition-colors`}>
                   <div className="flex justify-between items-center mb-3">
@@ -1405,22 +1437,26 @@ export default function FXApp() {
                         {/* Coloured fills between the two lines, per-segment */}
                         <Area type="monotone" dataKey="overRange" stroke="none" fill={overColor} fillOpacity={0.18} legendType="none" isAnimationActive={false}/>
                         <Area type="monotone" dataKey="underRange" stroke="none" fill={underColor} fillOpacity={0.18} legendType="none" isAnimationActive={false}/>
-                        {/* Budget line – solid blue (#60a5fa = blue-400, matching BUDGET RATE PLAN heading) */}
+                        {/* Budget line */}
                         <Area type="monotone" dataKey="budget" stroke="#60a5fa" strokeWidth={2} fill="none" name="Budget Rate">
                           <LabelList dataKey="budget" content={({x,y,value,index})=>{
                             if(index!==curIdx||typeof value!=='number')return null;
-                            return <text key="bl" x={x} y={y+14} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#60a5fa" fontWeight="bold">{value.toFixed(4)}</text>;
+                            // Budget label goes opposite side from actual
+                            const yOff = actualAbove ? 14 : -8;
+                            return <text key="bl" x={x} y={y+yOff} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#60a5fa" fontWeight="bold">{value.toFixed(4)}</text>;
                           }}/>
                         </Area>
-                        {/* Actual historical – solid amber (#f59e0b = amber-500, matching ACTUAL/FORECAST RATES heading) */}
+                        {/* Actual historical */}
                         <Area type="monotone" dataKey="actualHistorical" stroke="#f59e0b" strokeWidth={2} fill="none" name="Actual Rate" connectNulls={false} isAnimationActive={false}>
                           <LabelList dataKey="actualHistorical" content={({x,y,value,index})=>{
                             if(index!==curIdx||typeof value!=='number')return null;
-                            return <text key="al" x={x} y={y-8} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#f59e0b" fontWeight="bold">{value.toFixed(4)}</text>;
+                            // Actual label goes on its own side
+                            const yOff = actualAbove ? -8 : 14;
+                            return <text key="al" x={x} y={y+yOff} textAnchor="middle" fontSize={9} fontFamily="monospace" fill="#f59e0b" fontWeight="bold">{value.toFixed(4)}</text>;
                           }}/>
                         </Area>
-                        {/* Forecast – dashed amber, same color, no extra label */}
-                        <Area type="monotone" dataKey="actualForecast" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 4" fill="none" legendType="none" connectNulls={false} isAnimationActive={false}/>
+                        {/* Forecast – dashed amber, shows in tooltip */}
+                        <Area type="monotone" dataKey="actualForecast" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 4" fill="none" name="Forecast Rate" legendType="none" connectNulls={false} isAnimationActive={false}/>
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
