@@ -8,7 +8,7 @@ import {
   Download, Upload, FileSpreadsheet, RefreshCw, Table, Zap,
   PanelLeftClose, PanelLeftOpen, Menu, Sun, Moon, Plus, Trash2,
   LayoutDashboard, PlusSquare, MinusSquare, Info, Copy,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, Github
 } from 'lucide-react';
 
 import { ISO_CURRENCIES, CURRENCY_TO_COUNTRY, getCurrencyColor, DEFAULT_PORTFOLIO } from './constants/currencies';
@@ -1143,7 +1143,7 @@ export default function FXApp() {
               </div>
 
               {/* ── 5. What-If Scenario (collapsible) ── */}
-              <div className="mx-2 mt-3 mb-1">
+              <div className={`mx-2 mt-3 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
                 <button onClick={()=>setScenarioPanelOpen(v=>!v)} className="w-full flex items-center justify-between px-1 mb-2 group">
                   <span className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase group-hover:opacity-60 transition-opacity">What-If Scenario</span>
                   {scenarioPanelOpen ? <ChevronDown size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/> : <ChevronRight size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/>}
@@ -1151,6 +1151,27 @@ export default function FXApp() {
                 {scenarioPanelOpen && (
                   <ScenarioPanel portfolio={portfolio} deltas={scenarioDeltas} onDeltaChange={(code,val)=>setScenarioDeltas(prev=>({...prev,[code]:val}))} active={scenarioActive} onToggle={()=>setScenarioActive(!scenarioActive)} baseKpi={baseKpiData||kpiData} simKpi={kpiData} displayUnit={displayUnit} darkMode={darkMode}/>
                 )}
+              </div>
+
+              {/* ── 6. Connect ── */}
+              <div className="mx-2 mt-3 mb-2">
+                <div className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase mb-2 px-1">Connect</div>
+                <div className="flex flex-col gap-1">
+                  <a href="https://github.com/AviadDahanWeiss/fx-report" target="_blank" rel="noopener noreferrer"
+                    className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
+                    <Github size={12}/>
+                    <span>GitHub</span>
+                    <span className="opacity-30 ml-auto text-[9px]">fx-report</span>
+                  </a>
+                  <a href="https://www.linkedin.com/in/aviaddahanweiss" target="_blank" rel="noopener noreferrer"
+                    className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-[#0A66C2]/15 hover:bg-[#0A66C2]/25 border-[#0A66C2]/30 text-[#4da3f5]':'bg-[#0A66C2]/8 hover:bg-[#0A66C2]/15 border-[#0A66C2]/25 text-[#0A66C2]'}`}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                    <span>LinkedIn</span>
+                    <span className="opacity-30 ml-auto text-[9px]">Connect</span>
+                  </a>
+                </div>
               </div>
             </div>
           )}
