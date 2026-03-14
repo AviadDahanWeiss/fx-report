@@ -177,6 +177,12 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
   const [expandedYear, setExpandedYear] = useState(true);
   const [expandedQuarters, setExpandedQuarters] = useState([true, true, true, true]);
   const [planningYear, setPlanningYear] = useState(2026);
+  const [budgetGroupOpen, setBudgetGroupOpen] = useState(true);
+  const [budgetVolOpen, setBudgetVolOpen] = useState(true);
+  const [budgetRateOpen, setBudgetRateOpen] = useState(false);
+  const [actFcstGroupOpen, setActFcstGroupOpen] = useState(false);
+  const [actFcstVolOpen, setActFcstVolOpen] = useState(false);
+  const [actFcstRateOpen, setActFcstRateOpen] = useState(false);
   const [currencySearch, setCurrencySearch] = useState('');
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [flashStates, setFlashStates] = useState({});
@@ -191,8 +197,10 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
     [currencySearch, portfolio]);
 
   useEffect(() => {
-    if (isOpen && scrollToRates && ratesSectionRef.current) {
-      setTimeout(() => ratesSectionRef.current.scrollIntoView({ behavior: 'smooth' }), 100);
+    if (isOpen && scrollToRates) {
+      setActFcstGroupOpen(true);
+      setActFcstRateOpen(true);
+      setTimeout(() => ratesSectionRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
     }
   }, [isOpen, scrollToRates]);
 
@@ -347,10 +355,23 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
           {/* Scrollable body */}
           <div className={`flex-grow overflow-auto p-4 sm:p-6 custom-scrollbar ${darkMode?'bg-black/20':''}`}>
 
-            {/* VOLUME TABLE */}
-            <div className="mb-12">
-              <h3 className="font-mono text-sm font-bold text-emerald-400 mb-4 flex items-center gap-2"><Activity size={16}/> VOLUME PLAN (LOCAL CURRENCY)</h3>
-              <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
+            {/* ── BUDGET GROUP ── */}
+            <div className="mb-4">
+              <button onClick={()=>setBudgetGroupOpen(v=>!v)} className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg mb-3 font-mono text-sm font-bold text-emerald-400 ${darkMode?'bg-emerald-900/20 hover:bg-emerald-900/30 border border-emerald-800/30':'bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'}`}>
+                {budgetGroupOpen?<ChevronDown size={15}/>:<ChevronRight size={15}/>}
+                BUDGET
+              </button>
+              {budgetGroupOpen&&(
+                <div className={`ml-2 pl-3 border-l-2 space-y-3 ${darkMode?'border-emerald-800/40':'border-emerald-200'}`}>
+
+                  {/* Budget Volumes sub-section */}
+                  <div>
+                    <button onClick={()=>setBudgetVolOpen(v=>!v)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 font-mono text-xs font-bold text-emerald-400 ${darkMode?'bg-white/5 hover:bg-white/8 border border-white/10':'bg-emerald-50/60 hover:bg-emerald-100/60 border border-emerald-200/60'}`}>
+                      {budgetVolOpen?<ChevronDown size={13}/>:<ChevronRight size={13}/>}
+                      <Activity size={13}/> VOLUME PLAN (LOCAL CURRENCY)
+                    </button>
+                    {budgetVolOpen&&(
+                    <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
                 <table className="w-full min-w-[480px] text-left border-collapse">
                   <thead className={`sticky top-0 z-20 ${darkMode?'bg-[#18181b]':'bg-gray-100'}`}>
                     <tr className={`border-b ${darkMode?'border-white/20':'border-gray-200'}`}>
@@ -410,55 +431,77 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                   </tbody>
                 </table>
               </div>
+                    )}
+                  </div>
+
+                  {/* Budget Rates sub-section */}
+                  <div>
+                    <button onClick={()=>setBudgetRateOpen(v=>!v)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 font-mono text-xs font-bold text-blue-400 ${darkMode?'bg-white/5 hover:bg-white/8 border border-white/10':'bg-blue-50/60 hover:bg-blue-100/60 border border-blue-200/60'}`}>
+                      {budgetRateOpen?<ChevronDown size={13}/>:<ChevronRight size={13}/>}
+                      <DollarSign size={13}/> BUDGET RATE PLAN
+                    </button>
+                    {budgetRateOpen&&(
+                    <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
+                      <table className="w-full min-w-[480px] text-left border-collapse">
+                        <thead>
+                          <tr className={`border-b ${darkMode?'border-white/20':'border-gray-200'}`}>
+                            <th className="p-2 sm:p-3 font-mono text-xs opacity-70 w-36 sm:w-52">CURRENCY / DIR</th>
+                            <th className={`p-2 sm:p-3 font-mono text-xs text-center border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>{planningYear} AVG</th>
+                            {expandedYear&&quarters.map((q,qi)=>(
+                              <React.Fragment key={q}>
+                                {!expandedQuarters[qi]&&<th className={`p-2 sm:p-3 font-mono text-xs text-center border-l min-w-[88px] ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>{q} AVG</th>}
+                                {expandedQuarters[qi]&&[0,1,2].map(o=><th key={o} className={`p-2 font-mono text-xs text-center border-l min-w-[68px] opacity-70 ${darkMode?'border-white/10':'border-gray-200'}`}>{months[qi*3+o].toUpperCase()}</th>)}
+                              </React.Fragment>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {portfolio.map(curr=>{
+                            if(curr.code==='USD') return null;
+                            return(
+                              <tr key={curr.id} className={`border-b ${darkMode?'border-white/5 hover:bg-white/5':'border-gray-100 hover:bg-gray-50'}`}>
+                                <td className={`p-2 sm:p-3 font-bold font-mono border-r pl-8 ${darkMode?'border-white/10':'border-gray-200'}`}>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1.5"><FlagIcon code={curr.code}/> <span>{curr.code}</span><button onClick={()=>handleToggleDirection(curr.id)} className={`p-0.5 rounded ${darkMode?'hover:bg-white/10 text-white/50 hover:text-white':'hover:bg-black/5 text-gray-400 hover:text-gray-700'}`}><ArrowLeftRight size={11}/></button></div>
+                                    <span className={`text-[9px] font-mono font-bold px-1 rounded transition-all duration-500 ${flashStates[curr.id]?'bg-emerald-400 text-black':(darkMode?'opacity-30 text-white':'opacity-40 text-gray-600')}`}>{curr.rateDirection==='LOCAL_PER_USD'?`(${curr.code}/USD)`:`(USD/${curr.code})`}</span>
+                                  </div>
+                                </td>
+                                <td className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}><DecimalInput value={curr.annualBudgetRate} onChange={v=>handleRateYearUpdate(curr.id,v)} className="w-full bg-transparent text-center font-bold outline-none text-blue-400 text-xs"/></td>
+                                {expandedYear&&quarters.map((q,qi)=>(
+                                  <React.Fragment key={q}>
+                                    {!expandedQuarters[qi]&&<td className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}><DecimalInput value={getQuarterRate(curr.monthlyRates,qi)} onChange={v=>handleRateQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-xs outline-none text-blue-300/80"/></td>}
+                                    {expandedQuarters[qi]&&[0,1,2].map(o=>{const mi=qi*3+o;return<td key={mi} className={`border-l relative group/rcell ${darkMode?'border-white/10':'border-gray-200'}`}><DecimalInput value={curr.monthlyRates[mi]} onChange={v=>handleRateMonthUpdate(curr.id,mi,v)} className={`p-2 w-full bg-transparent text-center font-mono text-xs outline-none ${darkMode?'text-white/50':'text-gray-500'}`}/>{mi<11&&(<button onMouseDown={e=>{e.preventDefault();handleCopyToYearEnd(curr.id,mi,'monthlyRates');}} className="absolute top-0 right-0 z-20 w-[18px] h-[18px] opacity-0 group-focus-within/rcell:opacity-100 bg-blue-500 hover:bg-blue-400 text-white rounded-bl-lg flex items-center justify-center text-[9px] transition-opacity cursor-pointer group/copytip">→<span className="absolute bottom-full right-0 mb-1 hidden group-hover/copytip:block whitespace-nowrap text-white text-[9px] px-2 py-1 rounded shadow-xl z-30 font-sans font-normal leading-none pointer-events-none" style={{backgroundColor:'#1e293b'}}>Copy to year end</span></button>)}</td>;})}
+                                  </React.Fragment>
+                                ))}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* BUDGET RATE TABLE */}
-            <div>
-              <h3 className={`font-mono text-sm font-bold text-blue-400 mb-4 flex items-center gap-2 border-t pt-8 ${darkMode?'border-white/10':'border-gray-200'}`}><DollarSign size={16}/> BUDGET RATE PLAN</h3>
-              <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
-                <table className="w-full min-w-[480px] text-left border-collapse">
-                  <thead>
-                    <tr className={`border-b ${darkMode?'border-white/20':'border-gray-200'}`}>
-                      <th className="p-2 sm:p-3 font-mono text-xs opacity-70 w-36 sm:w-52">CURRENCY / DIR</th>
-                      <th className={`p-2 sm:p-3 font-mono text-xs text-center border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>{planningYear} AVG</th>
-                      {expandedYear&&quarters.map((q,qi)=>(
-                        <React.Fragment key={q}>
-                          {!expandedQuarters[qi]&&<th className={`p-2 sm:p-3 font-mono text-xs text-center border-l min-w-[88px] ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}>{q} AVG</th>}
-                          {expandedQuarters[qi]&&[0,1,2].map(o=><th key={o} className={`p-2 font-mono text-xs text-center border-l min-w-[68px] opacity-70 ${darkMode?'border-white/10':'border-gray-200'}`}>{months[qi*3+o].toUpperCase()}</th>)}
-                        </React.Fragment>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {portfolio.map(curr=>{
-                      if(curr.code==='USD') return null;
-                      return(
-                        <tr key={curr.id} className={`border-b ${darkMode?'border-white/5 hover:bg-white/5':'border-gray-100 hover:bg-gray-50'}`}>
-                          <td className={`p-2 sm:p-3 font-bold font-mono border-r pl-8 ${darkMode?'border-white/10':'border-gray-200'}`}>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5"><FlagIcon code={curr.code}/> <span>{curr.code}</span><button onClick={()=>handleToggleDirection(curr.id)} className={`p-0.5 rounded ${darkMode?'hover:bg-white/10 text-white/50 hover:text-white':'hover:bg-black/5 text-gray-400 hover:text-gray-700'}`}><ArrowLeftRight size={11}/></button></div>
-                              <span className={`text-[9px] font-mono font-bold px-1 rounded transition-all duration-500 ${flashStates[curr.id]?'bg-emerald-400 text-black':(darkMode?'opacity-30 text-white':'opacity-40 text-gray-600')}`}>{curr.rateDirection==='LOCAL_PER_USD'?`(${curr.code}/USD)`:`(USD/${curr.code})`}</span>
-                            </div>
-                          </td>
-                          <td className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}><DecimalInput value={curr.annualBudgetRate} onChange={v=>handleRateYearUpdate(curr.id,v)} className="w-full bg-transparent text-center font-bold outline-none text-blue-400 text-xs"/></td>
-                          {expandedYear&&quarters.map((q,qi)=>(
-                            <React.Fragment key={q}>
-                              {!expandedQuarters[qi]&&<td className={`p-2 border-l ${darkMode?'border-white/10 bg-white/5':'border-gray-200 bg-gray-50'}`}><DecimalInput value={getQuarterRate(curr.monthlyRates,qi)} onChange={v=>handleRateQuarterUpdate(curr.id,qi,v)} className="w-full bg-transparent text-center font-mono text-xs outline-none text-blue-300/80"/></td>}
-                              {expandedQuarters[qi]&&[0,1,2].map(o=>{const mi=qi*3+o;return<td key={mi} className={`border-l relative group/rcell ${darkMode?'border-white/10':'border-gray-200'}`}><DecimalInput value={curr.monthlyRates[mi]} onChange={v=>handleRateMonthUpdate(curr.id,mi,v)} className={`p-2 w-full bg-transparent text-center font-mono text-xs outline-none ${darkMode?'text-white/50':'text-gray-500'}`}/>{mi<11&&(<button onMouseDown={e=>{e.preventDefault();handleCopyToYearEnd(curr.id,mi,'monthlyRates');}} className="absolute top-0 right-0 z-20 w-[18px] h-[18px] opacity-0 group-focus-within/rcell:opacity-100 bg-blue-500 hover:bg-blue-400 text-white rounded-bl-lg flex items-center justify-center text-[9px] transition-opacity cursor-pointer group/copytip">→<span className="absolute bottom-full right-0 mb-1 hidden group-hover/copytip:block whitespace-nowrap text-white text-[9px] px-2 py-1 rounded shadow-xl z-30 font-sans font-normal leading-none pointer-events-none" style={{backgroundColor:'#1e293b'}}>Copy to year end</span></button>)}</td>;})}
-                            </React.Fragment>
-                          ))}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            {/* ── ACTUAL/FORECAST GROUP ── */}
+            <div className={`mt-4 border-t pt-4 ${darkMode?'border-white/10':'border-gray-200'}`}>
+              <button onClick={()=>setActFcstGroupOpen(v=>!v)} className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg mb-3 font-mono text-sm font-bold text-amber-500 ${darkMode?'bg-amber-900/15 hover:bg-amber-900/25 border border-amber-800/30':'bg-amber-50 hover:bg-amber-100 border border-amber-200'}`}>
+                {actFcstGroupOpen?<ChevronDown size={15}/>:<ChevronRight size={15}/>}
+                ACTUAL / FORECAST
+              </button>
+              {actFcstGroupOpen&&(
+                <div className={`ml-2 pl-3 border-l-2 space-y-3 ${darkMode?'border-amber-800/40':'border-amber-200'}`}>
 
-            {/* ACTUAL/FORECAST VOLUME TABLE */}
-            <div className="mb-12">
-              <h3 className={`font-mono text-sm font-bold text-amber-500 mb-4 flex items-center gap-2 border-t pt-8 ${darkMode?'border-white/10':'border-gray-200'}`}><Activity size={16}/> ACTUAL / FORECAST VOLUME (LOCAL CURRENCY)</h3>
-              <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
+                  {/* Actual/Forecast Volumes sub-section */}
+                  <div>
+                    <button onClick={()=>setActFcstVolOpen(v=>!v)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 font-mono text-xs font-bold text-amber-500 ${darkMode?'bg-white/5 hover:bg-white/8 border border-white/10':'bg-amber-50/60 hover:bg-amber-100/60 border border-amber-200/60'}`}>
+                      {actFcstVolOpen?<ChevronDown size={13}/>:<ChevronRight size={13}/>}
+                      <Activity size={13}/> ACTUAL / FORECAST VOLUME (LOCAL CURRENCY)
+                    </button>
+                    {actFcstVolOpen&&(
+                    <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
                 <table className="w-full min-w-[480px] text-left border-collapse">
                   <thead className={`sticky top-0 z-20 ${darkMode?'bg-[#18181b]':'bg-gray-100'}`}>
                     <tr className={`border-b ${darkMode?'border-white/20':'border-gray-200'}`}>
@@ -501,23 +544,27 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                   </tbody>
                 </table>
               </div>
-            </div>
-
-            {/* ACTUALS RATE TABLE */}
-            <div ref={ratesSectionRef}>
-              <div className={`flex flex-wrap gap-3 justify-between items-center mb-4 border-t pt-8 ${darkMode?'border-white/10':'border-gray-200'}`}>
-                <h3 className="font-mono text-sm font-bold text-amber-500 flex items-center gap-2"><DollarSign size={16}/> ACTUAL / FORECAST RATES</h3>
-                <div className="flex flex-wrap gap-2 items-center">
-                  <button onClick={()=>setShowFillConfirm(true)} className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono border ${darkMode?'bg-white/5 hover:bg-white/10 border-white/20':'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700'}`}><Zap size={12}/> FILL FORECAST</button>
-                  <div className="flex items-center gap-2">
-                    {lastFetchedLabel && <span className={`text-[9px] font-mono hidden sm:inline ${darkMode?'text-white/30':'text-gray-400'}`}>{lastFetchedLabel}</span>}
-                    <button onClick={()=>setShowFetchConfirm(true)} disabled={isFetchingRates} className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono border disabled:opacity-50 ${darkMode?'bg-white/5 hover:bg-white/10 border-white/20':'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700'}`}>
-                      <RefreshCw size={12} className={isFetchingRates?'animate-spin':''}/> APPLY LIVE RATES
-                    </button>
+                    )}
                   </div>
-                </div>
-              </div>
-              <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
+
+                  {/* Actual/Forecast Rates sub-section */}
+                  <div ref={ratesSectionRef}>
+                    <button onClick={()=>setActFcstRateOpen(v=>!v)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 font-mono text-xs font-bold text-amber-500 ${darkMode?'bg-white/5 hover:bg-white/8 border border-white/10':'bg-amber-50/60 hover:bg-amber-100/60 border border-amber-200/60'}`}>
+                      {actFcstRateOpen?<ChevronDown size={13}/>:<ChevronRight size={13}/>}
+                      <DollarSign size={13}/> ACTUAL / FORECAST RATES
+                    </button>
+                    {actFcstRateOpen&&(
+                    <div>
+                      <div className="flex flex-wrap gap-2 items-center mb-4">
+                        <button onClick={()=>setShowFillConfirm(true)} className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono border ${darkMode?'bg-white/5 hover:bg-white/10 border-white/20':'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700'}`}><Zap size={12}/> FILL FORECAST</button>
+                        <div className="flex items-center gap-2">
+                          {lastFetchedLabel && <span className={`text-[9px] font-mono hidden sm:inline ${darkMode?'text-white/30':'text-gray-400'}`}>{lastFetchedLabel}</span>}
+                          <button onClick={()=>setShowFetchConfirm(true)} disabled={isFetchingRates} className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono border disabled:opacity-50 ${darkMode?'bg-white/5 hover:bg-white/10 border-white/20':'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-700'}`}>
+                            <RefreshCw size={12} className={isFetchingRates?'animate-spin':''}/> APPLY LIVE RATES
+                          </button>
+                        </div>
+                      </div>
+                      <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
                 <table className="w-full min-w-[480px] text-left border-collapse">
                   <thead>
                     <tr className={`border-b ${darkMode?'border-white/20':'border-gray-200'}`}>
@@ -563,6 +610,11 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                   </tbody>
                 </table>
               </div>
+                    </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -594,7 +646,7 @@ const ParticleIntro = ({ onStart }) => {
     window.addEventListener('mousemove', onMM);
 
     // Build particles with random Brownian motion
-    const N = 700;
+    const N = 1400;
     st.particles = Array.from({ length: N }, (_, i) => ({
       id: i,
       x: Math.random() * canvas.width,
@@ -615,7 +667,7 @@ const ParticleIntro = ({ onStart }) => {
       const fs = 68;
       const off = document.createElement('canvas');
       off.width = Math.ceil(fs * 0.65 * text.length) + 48;
-      off.height = fs + 24;
+      off.height = fs + 80;
       const c = off.getContext('2d');
       c.fillStyle = '#fff';
       c.font = `bold ${fs}px monospace`;
@@ -727,7 +779,7 @@ const ParticleIntro = ({ onStart }) => {
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full"/>
       <div className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1000 ${isReady?'opacity-100':'opacity-0'}`}
            style={{pointerEvents: isReady ? 'auto' : 'none'}}>
-        <p className="text-white/30 font-mono text-[9px] tracking-[0.5em] uppercase mb-10">FX Markets Online</p>
+        <p className="text-white/30 font-mono text-[9px] tracking-[0.5em] uppercase mb-10">FX Impact on Expenses · Dashboard</p>
         <button onClick={onStart}
           className="px-12 py-4 bg-transparent border border-white/25 text-white font-bold tracking-[0.3em] text-xs hover:bg-white hover:text-black transition-all duration-300 uppercase">
           Enter Dashboard
@@ -840,6 +892,12 @@ export default function FXApp() {
       return { ...curr, monthlyActualRates:newActuals, monthlyRateSources:newSources };
     }));
   }, [currentYTDMonth, setPortfolio]);
+
+  const handleClearAppData = () => {
+    if (!window.confirm('Reset all app data to defaults? This cannot be undone.')) return;
+    ['fx_portfolio_v1', 'fx_darkmode', 'fx_ytd_month', 'fx_display_unit', 'fx_scenario'].forEach(k => localStorage.removeItem(k));
+    window.location.reload();
+  };
 
   const handleApplyLiveRates = useCallback((rateData) => {
     setPortfolio(prev => prev.map(curr => {
@@ -1035,7 +1093,7 @@ export default function FXApp() {
 
       {/* Mobile top bar */}
       <div className={`sticky top-0 z-20 flex lg:hidden items-center justify-between px-4 py-3 border-b ${darkMode?'bg-black/90 border-white/10':'bg-white/90 border-black/10'} backdrop-blur`}>
-        <h1 className="font-mono text-xs font-bold tracking-widest opacity-60">FX DASHBOARD</h1>
+        <h1 className="font-mono text-xs font-bold tracking-widest opacity-60">FX EXPENSE IMPACT</h1>
         <div className="flex items-center gap-1">
           <button onClick={()=>setDarkMode(!darkMode)} className="p-2 rounded hover:bg-white/10">{darkMode?<Sun size={16}/>:<Moon size={16}/>}</button>
           <button onClick={()=>setIsLeftPanelOpen(!isLeftPanelOpen)} className="p-2 rounded hover:bg-white/10"><Menu size={18}/></button>
@@ -1048,7 +1106,7 @@ export default function FXApp() {
         <div className="mb-8 sm:mb-12 grid grid-cols-12 gap-4 items-end">
           <div className="col-span-12 lg:col-span-8">
             <h1 className="text-[clamp(2rem,6vw,5rem)] leading-[0.85] font-black tracking-tighter uppercase mb-2">
-              <span className="block text-[clamp(1rem,3.5vw,2.5rem)] opacity-70 mb-2 tracking-[0.08em]">{getMonthName(currentYTDMonth)} YTD FX IMPACT</span>
+              <span className="block text-[clamp(1rem,3.5vw,2.5rem)] opacity-70 mb-2 tracking-[0.08em]">{getMonthName(currentYTDMonth)} YTD · FX ON EXPENSES</span>
               Variance
               <span className={`block ${kpiData.ytdVariance<0?theme.danger:theme.accent}`}>
                 {formatFinancial(kpiData.ytdVariance, displayUnit)}
@@ -1078,83 +1136,22 @@ export default function FXApp() {
               </div>
 
               {/* ── 1. Plan Volumes & Rates ── */}
-              <div className="px-2 pb-1">
+              <div className="px-2 pb-2">
                 <button onClick={()=>setIsVolumeModalOpen(true)} className={`w-full py-2.5 rounded-lg border ${darkMode?'border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400':'border-blue-500/50 bg-blue-50 hover:bg-blue-100 text-blue-600'} font-bold font-mono tracking-widest text-[10px] flex items-center justify-center gap-2`}>
                   <LayoutDashboard size={13}/> PLAN VOLUMES & RATES
                 </button>
-                <div className="mt-1">
-                  <input type="file" ref={fileInputRefMain} style={{display:'none'}} onChange={handleImportFileMain} accept=".csv"/>
-                  <button onClick={()=>fileInputRefMain.current.click()} className={`w-full flex items-center justify-center gap-2 h-8 rounded-lg text-[10px] font-mono border ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/60':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-500'}`}>
-                    <Upload size={11}/> IMPORT CSV
-                  </button>
-                </div>
               </div>
 
-              {/* ── 2. Display ── */}
-              <div className={`mx-2 mt-3 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
-                <div className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase mb-2 px-1">Display</div>
-                {/* Theme row */}
-                <div className="flex items-center justify-between px-1 mb-2">
-                  <span className={`text-[11px] font-mono ${darkMode?'text-white/60':'text-gray-500'}`}>Theme</span>
-                  <button onClick={()=>setDarkMode(!darkMode)} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-mono transition-colors ${darkMode?'border-white/20 bg-white/5 hover:bg-white/10 text-white/80':'border-black/10 bg-black/5 hover:bg-black/10 text-gray-700'}`}>
-                    {darkMode?<><Sun size={11}/> Light</>:<><Moon size={11}/> Dark</>}
-                  </button>
-                </div>
-                {/* Currency unit row */}
-                <div className="flex items-center justify-between px-1">
-                  <span className={`text-[11px] font-mono ${darkMode?'text-white/60':'text-gray-500'}`}>Currency</span>
-                  <div className={`flex gap-0.5 p-0.5 rounded-lg border ${darkMode?'bg-white/5 border-white/10':'bg-black/5 border-black/10'}`}>
-                    {[{v:1,l:'$'},{v:1000,l:'$k'},{v:1000000,l:'$M'}].map(({v,l})=>(
-                      <button key={v} onClick={()=>setDisplayUnit(v)} className={`px-2.5 py-0.5 rounded font-black text-[11px] tracking-tight transition-colors ${displayUnit===v?(darkMode?'bg-white text-black':'bg-black text-white'):'opacity-40 hover:opacity-80'}`}>{l}</button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* ── 3. Download ── */}
-              <div className={`mx-2 mt-3 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
-                <div className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase mb-2 px-1">Download</div>
-                <div className="flex flex-col gap-1">
-                  <button onClick={handleExcelExport} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
-                    <FileSpreadsheet size={12}/> XLSX
-                  </button>
-                  <button onClick={()=>handlePdfExport(true)} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
-                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">with Ex Rate Plan</span>
-                  </button>
-                  <button onClick={()=>handlePdfExport(false)} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
-                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">without Ex Rate Plan</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* ── 4. Ex Rate Plan (collapsible) ── */}
-              <div className={`mx-2 mt-3 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
-                <button onClick={()=>setExRatePlanOpen(v=>!v)} className="w-full flex items-center justify-between px-1 mb-2 group">
-                  <span className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase group-hover:opacity-60 transition-opacity">Ex Rate Plan</span>
-                  {exRatePlanOpen ? <ChevronDown size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/> : <ChevronRight size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/>}
+              {/* ── 2. Import CSV ── */}
+              <div className={`mx-2 mb-3 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
+                <input type="file" ref={fileInputRefMain} style={{display:'none'}} onChange={handleImportFileMain} accept=".csv"/>
+                <button onClick={()=>fileInputRefMain.current.click()} className={`w-full flex items-center justify-center gap-2 h-8 rounded-lg text-[10px] font-mono border ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/70':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
+                  <Upload size={11}/> IMPORT CSV
                 </button>
-                {exRatePlanOpen && (
-                  <div className="space-y-2 mt-1">
-                    {portfolio.map(currency=>(
-                      <CurrencyRateCard key={currency.id} data={currency} onChange={updateCurrency} onRemove={removeCurrency} onToggleDirection={handleCardToggleDirection} flashState={flashStates[currency.id]} theme={theme} darkMode={darkMode}/>
-                    ))}
-                  </div>
-                )}
               </div>
 
-              {/* ── 5. What-If Scenario (collapsible) ── */}
-              <div className={`mx-2 mt-3 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
-                <button onClick={()=>setScenarioPanelOpen(v=>!v)} className="w-full flex items-center justify-between px-1 mb-2 group">
-                  <span className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase group-hover:opacity-60 transition-opacity">What-If Scenario</span>
-                  {scenarioPanelOpen ? <ChevronDown size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/> : <ChevronRight size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/>}
-                </button>
-                {scenarioPanelOpen && (
-                  <ScenarioPanel portfolio={portfolio} deltas={scenarioDeltas} onDeltaChange={(code,val)=>setScenarioDeltas(prev=>({...prev,[code]:val}))} active={scenarioActive} onToggle={()=>setScenarioActive(!scenarioActive)} baseKpi={baseKpiData||kpiData} simKpi={kpiData} displayUnit={displayUnit} darkMode={darkMode}/>
-                )}
-              </div>
-
-              {/* ── 6. Connect ── */}
-              <div className="mx-2 mt-3 mb-2">
+              {/* ── 3. Connect ── */}
+              <div className={`mx-2 mt-1 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
                 <div className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase mb-2 px-1">Connect</div>
                 <div className="flex flex-col gap-1">
                   <a href="https://github.com/AviadDahanWeiss/fx-report" target="_blank" rel="noopener noreferrer"
@@ -1172,6 +1169,72 @@ export default function FXApp() {
                     <span className="opacity-30 ml-auto text-[9px]">Connect</span>
                   </a>
                 </div>
+              </div>
+
+              {/* ── 4. Display ── */}
+              <div className={`mx-2 mt-2 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
+                <div className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase mb-2 px-1">Display</div>
+                <div className="flex items-center justify-between px-1 mb-2">
+                  <span className={`text-[11px] font-mono ${darkMode?'text-white/60':'text-gray-700'}`}>Theme</span>
+                  <button onClick={()=>setDarkMode(!darkMode)} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-mono transition-colors ${darkMode?'border-white/20 bg-white/5 hover:bg-white/10 text-white/80':'border-black/10 bg-black/5 hover:bg-black/10 text-gray-700'}`}>
+                    {darkMode?<><Sun size={11}/> Light</>:<><Moon size={11}/> Dark</>}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between px-1 mb-2">
+                  <span className={`text-[11px] font-mono ${darkMode?'text-white/60':'text-gray-700'}`}>Currency</span>
+                  <div className={`flex gap-0.5 p-0.5 rounded-lg border ${darkMode?'bg-white/5 border-white/10':'bg-black/5 border-black/10'}`}>
+                    {[{v:1,l:'$'},{v:1000,l:'$k'},{v:1000000,l:'$M'}].map(({v,l})=>(
+                      <button key={v} onClick={()=>setDisplayUnit(v)} className={`px-2.5 py-0.5 rounded font-black text-[11px] tracking-tight transition-colors ${displayUnit===v?(darkMode?'bg-white text-black':'bg-black text-white'):'opacity-40 hover:opacity-80'}`}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="px-1">
+                  <button onClick={handleClearAppData} className={`w-full flex items-center justify-center gap-2 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-red-500/15 border-white/10 text-white/40 hover:text-red-400 hover:border-red-500/30':'bg-black/5 hover:bg-red-50 border-black/10 text-gray-500 hover:text-red-600 hover:border-red-300'}`}>
+                    <Trash2 size={11}/> RESET TO DEFAULT
+                  </button>
+                </div>
+              </div>
+
+              {/* ── 5. Download ── */}
+              <div className={`mx-2 mt-2 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
+                <div className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase mb-2 px-1">Download</div>
+                <div className="flex flex-col gap-1">
+                  <button onClick={handleExcelExport} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
+                    <FileSpreadsheet size={12}/> XLSX
+                  </button>
+                  <button onClick={()=>handlePdfExport(true)} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
+                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">with Ex Rate Plan</span>
+                  </button>
+                  <button onClick={()=>handlePdfExport(false)} className={`w-full flex items-center gap-2 px-3 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/80':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
+                    <Download size={12}/> PDF <span className="opacity-40 ml-auto">without Ex Rate Plan</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* ── 6. Ex Rate Plan (collapsible) ── */}
+              <div className={`mx-2 mt-2 mb-1 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
+                <button onClick={()=>setExRatePlanOpen(v=>!v)} className="w-full flex items-center justify-between px-1 mb-2 group">
+                  <span className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase group-hover:opacity-60 transition-opacity">Ex Rate Plan</span>
+                  {exRatePlanOpen ? <ChevronDown size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/> : <ChevronRight size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/>}
+                </button>
+                {exRatePlanOpen && (
+                  <div className="space-y-2 mt-1">
+                    {portfolio.map(currency=>(
+                      <CurrencyRateCard key={currency.id} data={currency} onChange={updateCurrency} onRemove={removeCurrency} onToggleDirection={handleCardToggleDirection} flashState={flashStates[currency.id]} theme={theme} darkMode={darkMode}/>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* ── 7. What-If Scenario (collapsible) ── */}
+              <div className="mx-2 mt-2 mb-4 pb-3">
+                <button onClick={()=>setScenarioPanelOpen(v=>!v)} className="w-full flex items-center justify-between px-1 mb-2 group">
+                  <span className="font-mono text-[9px] font-bold tracking-widest opacity-35 uppercase group-hover:opacity-60 transition-opacity">What-If Scenario</span>
+                  {scenarioPanelOpen ? <ChevronDown size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/> : <ChevronRight size={13} className="opacity-35 group-hover:opacity-60 transition-opacity"/>}
+                </button>
+                {scenarioPanelOpen && (
+                  <ScenarioPanel portfolio={portfolio} deltas={scenarioDeltas} onDeltaChange={(code,val)=>setScenarioDeltas(prev=>({...prev,[code]:val}))} active={scenarioActive} onToggle={()=>setScenarioActive(!scenarioActive)} baseKpi={baseKpiData||kpiData} simKpi={kpiData} displayUnit={displayUnit} darkMode={darkMode}/>
+                )}
               </div>
             </div>
           )}
@@ -1192,7 +1255,7 @@ export default function FXApp() {
               {/* Variance row */}
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 {[
-                  {label:'YTD Variance',value:kpiData.ytdVariance,tooltip:'Pure FX impact YTD: actual volumes at budget rate minus actual volumes at actual rate.'},
+                  {label:'YTD Variance',value:kpiData.ytdVariance,tooltip:'FX impact YTD: actual volumes at budget rate minus actual volumes at actual rate.'},
                   {label:'MTD Variance',value:kpiData.mtdVariance,tooltip:'This month FX impact: actual volumes at budget rate vs actual rate.'},
                 ].map(({label,value,tooltip})=>(
                   <div key={label} className={`p-3 rounded-xl border flex flex-col items-center text-center relative ${darkMode?(value>=0?'border-emerald-500/30 bg-emerald-900/10':'border-rose-500/30 bg-rose-900/10'):(value>=0?'border-emerald-400 bg-emerald-50 kpi-gradient-emerald':'border-rose-400 bg-red-50 kpi-gradient-rose')}`}>
@@ -1214,7 +1277,7 @@ export default function FXApp() {
                 {[
                   {label:'Annual Budget',value:kpiData.annualBudget,lc:'border-blue-200 bg-blue-50 kpi-gradient-blue',tooltip:'Full year planned spend at budgeted exchange rates.'},
                   {label:'YTD Budget',value:kpiData.ytdBudget,lc:'border-indigo-200 bg-indigo-50 kpi-gradient-indigo',tooltip:'Budget spend through the YTD month at budget rates.'},
-                  {label:'YTD Act @ Budget Rate',value:kpiData.ytdActualInBudgetRate,lc:'border-violet-200 bg-violet-50 kpi-gradient-violet',tooltip:'Actual volumes priced at budget rates. Removes FX and isolates volume driven variance.'},
+                  {label:'YTD Act @ Budget Rate',value:kpiData.ytdActualInBudgetRate,lc:'border-violet-200 bg-violet-50 kpi-gradient-violet',tooltip:'Actual spend re-priced at budget rates — shows costs as if no FX movement occurred.'},
                   {label:'YTD Actual',value:kpiData.ytdActual,lc:'border-amber-200 bg-amber-50 kpi-gradient-amber',deltaVs:kpiData.ytdActualInBudgetRate,tooltip:'Actual spend: actual volumes at actual rates through YTD.'},
                   {label:'Annual Forecast',value:kpiData.annualForecast,lc:'border-cyan-200 bg-cyan-50 kpi-gradient-cyan',showDelta:true,tooltip:'Full year forecast using actual and forecast volumes and rates.'},
                 ].map(({label,value,showDelta,deltaVs,lc,tooltip})=>{
