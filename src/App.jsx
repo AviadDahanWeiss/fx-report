@@ -178,9 +178,9 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
   const [expandedQuarters, setExpandedQuarters] = useState([true, true, true, true]);
   const [planningYear, setPlanningYear] = useState(2026);
   const [budgetGroupOpen, setBudgetGroupOpen] = useState(true);
-  const [budgetVolOpen, setBudgetVolOpen] = useState(true);
+  const [budgetVolOpen, setBudgetVolOpen] = useState(false);
   const [budgetRateOpen, setBudgetRateOpen] = useState(false);
-  const [actFcstGroupOpen, setActFcstGroupOpen] = useState(false);
+  const [actFcstGroupOpen, setActFcstGroupOpen] = useState(true);
   const [actFcstVolOpen, setActFcstVolOpen] = useState(false);
   const [actFcstRateOpen, setActFcstRateOpen] = useState(false);
   const [currencySearch, setCurrencySearch] = useState('');
@@ -366,9 +366,9 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
 
                   {/* Budget Volumes sub-section */}
                   <div>
-                    <button onClick={()=>setBudgetVolOpen(v=>!v)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 font-mono text-xs font-bold text-emerald-400 ${darkMode?'bg-white/5 hover:bg-white/8 border border-white/10':'bg-emerald-50/60 hover:bg-emerald-100/60 border border-emerald-200/60'}`}>
+                    <button onClick={()=>setBudgetVolOpen(v=>!v)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 font-mono text-xs font-bold text-blue-400 ${darkMode?'bg-white/5 hover:bg-white/8 border border-white/10':'bg-blue-50/60 hover:bg-blue-100/60 border border-blue-200/60'}`}>
                       {budgetVolOpen?<ChevronDown size={13}/>:<ChevronRight size={13}/>}
-                      <Activity size={13}/> VOLUME PLAN (LOCAL CURRENCY)
+                      <Activity size={13}/> VOLUME (LOCAL CURRENCY)
                     </button>
                     {budgetVolOpen&&(
                     <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
@@ -438,7 +438,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                   <div>
                     <button onClick={()=>setBudgetRateOpen(v=>!v)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 font-mono text-xs font-bold text-blue-400 ${darkMode?'bg-white/5 hover:bg-white/8 border border-white/10':'bg-blue-50/60 hover:bg-blue-100/60 border border-blue-200/60'}`}>
                       {budgetRateOpen?<ChevronDown size={13}/>:<ChevronRight size={13}/>}
-                      <DollarSign size={13}/> BUDGET RATE PLAN
+                      <DollarSign size={13}/> RATES
                     </button>
                     {budgetRateOpen&&(
                     <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
@@ -462,7 +462,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                               <tr key={curr.id} className={`border-b ${darkMode?'border-white/5 hover:bg-white/5':'border-gray-100 hover:bg-gray-50'}`}>
                                 <td className={`p-2 sm:p-3 font-bold font-mono border-r pl-8 ${darkMode?'border-white/10':'border-gray-200'}`}>
                                   <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-1.5"><FlagIcon code={curr.code}/> <span>{curr.code}</span><button onClick={()=>handleToggleDirection(curr.id)} className={`p-0.5 rounded ${darkMode?'hover:bg-white/10 text-white/50 hover:text-white':'hover:bg-black/5 text-gray-400 hover:text-gray-700'}`}><ArrowLeftRight size={11}/></button></div>
+                                    <div className="flex items-center gap-1.5"><FlagIcon code={curr.code}/> <span className="text-sm">{curr.code}</span><button onClick={()=>handleToggleDirection(curr.id)} className={`p-0.5 rounded ${darkMode?'hover:bg-white/10 text-white/50 hover:text-white':'hover:bg-black/5 text-gray-400 hover:text-gray-700'}`}><ArrowLeftRight size={11}/></button></div>
                                     <span className={`text-[9px] font-mono font-bold px-1 rounded transition-all duration-500 ${flashStates[curr.id]?'bg-emerald-400 text-black':(darkMode?'opacity-30 text-white':'opacity-40 text-gray-600')}`}>{curr.rateDirection==='LOCAL_PER_USD'?`(${curr.code}/USD)`:`(USD/${curr.code})`}</span>
                                   </div>
                                 </td>
@@ -498,7 +498,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                   <div>
                     <button onClick={()=>setActFcstVolOpen(v=>!v)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 font-mono text-xs font-bold text-amber-500 ${darkMode?'bg-white/5 hover:bg-white/8 border border-white/10':'bg-amber-50/60 hover:bg-amber-100/60 border border-amber-200/60'}`}>
                       {actFcstVolOpen?<ChevronDown size={13}/>:<ChevronRight size={13}/>}
-                      <Activity size={13}/> ACTUAL / FORECAST VOLUME (LOCAL CURRENCY)
+                      <Activity size={13}/> VOLUME (LOCAL CURRENCY)
                     </button>
                     {actFcstVolOpen&&(
                     <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
@@ -551,7 +551,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                   <div ref={ratesSectionRef}>
                     <button onClick={()=>setActFcstRateOpen(v=>!v)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg mb-2 font-mono text-xs font-bold text-amber-500 ${darkMode?'bg-white/5 hover:bg-white/8 border border-white/10':'bg-amber-50/60 hover:bg-amber-100/60 border border-amber-200/60'}`}>
                       {actFcstRateOpen?<ChevronDown size={13}/>:<ChevronRight size={13}/>}
-                      <DollarSign size={13}/> ACTUAL / FORECAST RATES
+                      <DollarSign size={13}/> RATES
                     </button>
                     {actFcstRateOpen&&(
                     <div>
@@ -583,7 +583,7 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
                         <tr key={curr.id} className={`border-b ${darkMode?'border-white/5 hover:bg-white/5':'border-gray-100 hover:bg-gray-50'}`}>
                           <td className={`p-2 sm:p-3 font-bold font-mono border-r pl-8 ${darkMode?'border-white/10':'border-gray-200'}`}>
                             <div className="flex items-center justify-between">
-                              <div className="flex flex-col gap-1"><div className="flex items-center gap-1.5"><FlagIcon code={curr.code}/>{curr.code}</div><MiniSourceChip source={curr.rateSource}/></div>
+                              <div className="flex flex-col gap-1"><div className="flex items-center gap-1.5"><FlagIcon code={curr.code}/><span className="text-sm">{curr.code}</span></div><MiniSourceChip source={curr.rateSource}/></div>
                               <span className="text-[9px] font-mono opacity-30">{curr.rateDirection==='LOCAL_PER_USD'?`(${curr.code}/USD)`:`(USD/${curr.code})`}</span>
                             </div>
                           </td>
@@ -625,13 +625,25 @@ const PlanningModal = ({ isOpen, onClose, portfolio, onUpdatePortfolio, onAddCur
 
 // ─── INTRO SCREEN ─────────────────────────────────────────────────────────────
 
+// Hover zones: relative (rx, ry) positions on screen → spawn that currency code
+const INTRO_HOVER_ZONES = [
+  { rx: 0.12, ry: 0.18, currency: 'USD' },
+  { rx: 0.88, ry: 0.18, currency: 'EUR' },
+  { rx: 0.12, ry: 0.82, currency: 'GBP' },
+  { rx: 0.88, ry: 0.82, currency: 'JPY' },
+  { rx: 0.50, ry: 0.10, currency: 'ILS' },
+  { rx: 0.50, ry: 0.90, currency: 'CNY' },
+  { rx: 0.25, ry: 0.50, currency: 'CAD' },
+  { rx: 0.75, ry: 0.50, currency: 'CHF' },
+];
+
 const ParticleIntro = ({ onStart }) => {
   const canvasRef = useRef(null);
   const [isReady, setIsReady] = useState(false);
   const animIdRef = useRef(null);
   const readyRef = useRef(false);
   const mouseRef = useRef({ x: -9999, y: -9999 });
-  const stRef = useRef({ frame: 0, formationActive: false, formationTimer: 0, nextFormation: 100, particles: [] });
+  const stRef = useRef({ frame: 0, formationActive: false, formationTimer: 0, nextFormation: 100, particles: [], lastHoverZone: null });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -686,11 +698,7 @@ const ParticleIntro = ({ onStart }) => {
       return pts;
     };
 
-    const triggerFormation = () => {
-      const W = canvas.width, H = canvas.height;
-      const text = CURRENCIES[Math.floor(Math.random() * CURRENCIES.length)];
-      const cx = 130 + Math.random() * (W - 260);
-      const cy = 90  + Math.random() * (H - 180);
+    const triggerFormationAt = (text, cx, cy) => {
       const pts = getTextPixels(text, cx, cy);
       if (!pts.length) return;
       // Recruit particles closest to the formation centre
@@ -704,6 +712,14 @@ const ParticleIntro = ({ onStart }) => {
       }
       st.formationActive = true;
       st.formationTimer = 0;
+    };
+
+    const triggerFormation = () => {
+      const W = canvas.width, H = canvas.height;
+      const text = CURRENCIES[Math.floor(Math.random() * CURRENCIES.length)];
+      const cx = 130 + Math.random() * (W - 260);
+      const cy = 90  + Math.random() * (H - 180);
+      triggerFormationAt(text, cx, cy);
     };
 
     const draw = () => {
@@ -723,6 +739,28 @@ const ParticleIntro = ({ onStart }) => {
           st.formationActive = false;
           st.nextFormation = st.frame + 180 + Math.floor(Math.random() * 160);
         }
+      }
+
+      // Hover-zone detection: hovering a defined screen area spawns its currency code
+      const ZONE_R = 90;
+      if (!st.formationActive) {
+        for (const zone of INTRO_HOVER_ZONES) {
+          const zx = zone.rx * W, zy = zone.ry * H;
+          const dist = Math.sqrt((mouse.x - zx) ** 2 + (mouse.y - zy) ** 2);
+          if (dist < ZONE_R && st.lastHoverZone !== zone.currency) {
+            st.lastHoverZone = zone.currency;
+            triggerFormationAt(zone.currency, zx, zy);
+            break;
+          }
+        }
+      }
+      // Reset remembered zone when mouse leaves all zones
+      if (st.lastHoverZone) {
+        const inAnyZone = INTRO_HOVER_ZONES.some(zone => {
+          const zx = zone.rx * W, zy = zone.ry * H;
+          return Math.sqrt((mouse.x - zx) ** 2 + (mouse.y - zy) ** 2) < ZONE_R;
+        });
+        if (!inAnyZone) st.lastHoverZone = null;
       }
 
       st.particles.forEach(p => {
@@ -1142,11 +1180,14 @@ export default function FXApp() {
                 </button>
               </div>
 
-              {/* ── 2. Import CSV ── */}
+              {/* ── 2. Import CSV + Reset ── */}
               <div className={`mx-2 mb-3 pb-3 border-b ${darkMode?'border-white/8':'border-black/8'}`}>
                 <input type="file" ref={fileInputRefMain} style={{display:'none'}} onChange={handleImportFileMain} accept=".csv"/>
-                <button onClick={()=>fileInputRefMain.current.click()} className={`w-full flex items-center justify-center gap-2 h-8 rounded-lg text-[10px] font-mono border ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/70':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
+                <button onClick={()=>fileInputRefMain.current.click()} className={`w-full flex items-center justify-center gap-2 h-8 rounded-lg text-[10px] font-mono border mb-1 ${darkMode?'bg-white/5 hover:bg-white/10 border-white/10 text-white/70':'bg-black/5 hover:bg-black/10 border-black/10 text-gray-700'}`}>
                   <Upload size={11}/> IMPORT CSV
+                </button>
+                <button onClick={handleClearAppData} className={`w-full flex items-center justify-center gap-2 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-red-500/15 border-white/10 text-white/40 hover:text-red-400 hover:border-red-500/30':'bg-black/5 hover:bg-red-50 border-black/10 text-gray-500 hover:text-red-600 hover:border-red-300'}`}>
+                  <Trash2 size={11}/> RESET TO DEFAULT VALUES
                 </button>
               </div>
 
@@ -1187,11 +1228,6 @@ export default function FXApp() {
                       <button key={v} onClick={()=>setDisplayUnit(v)} className={`px-2.5 py-0.5 rounded font-black text-[11px] tracking-tight transition-colors ${displayUnit===v?(darkMode?'bg-white text-black':'bg-black text-white'):'opacity-40 hover:opacity-80'}`}>{l}</button>
                     ))}
                   </div>
-                </div>
-                <div className="px-1">
-                  <button onClick={handleClearAppData} className={`w-full flex items-center justify-center gap-2 h-8 rounded-lg text-[10px] font-mono border transition-colors ${darkMode?'bg-white/5 hover:bg-red-500/15 border-white/10 text-white/40 hover:text-red-400 hover:border-red-500/30':'bg-black/5 hover:bg-red-50 border-black/10 text-gray-500 hover:text-red-600 hover:border-red-300'}`}>
-                    <Trash2 size={11}/> RESET TO DEFAULT
-                  </button>
                 </div>
               </div>
 
